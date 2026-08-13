@@ -30,3 +30,7 @@ body {
 nextjs-portal {
   display: none !important;
 }
+
+.fixed.overflow-y-auto::-webkit-scrollbar { width: 8px; }
+.fixed.overflow-y-auto::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 8px; }
+.fixed.overflow-y-auto::-webkit-scrollbar-track { background: transparent; }

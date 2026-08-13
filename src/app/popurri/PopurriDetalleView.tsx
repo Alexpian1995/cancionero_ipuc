@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useLayoutEffect } from 'react'
 import { 
   ArrowLeftIcon, 
   ChevronLeftIcon, 
   ChevronRightIcon, 
   PlusIcon,
   MusicalNoteIcon,
-  UserIcon
+  UserIcon,
+  ArrowsPointingOutIcon
 } from '@heroicons/react/24/outline'
 
 type CancionPopurri = {
@@ -28,19 +29,19 @@ type Props = {
 const NOTAS_SOSTENIDOS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const NOTAS_BEMAOLES   = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 
-function transponerNota(nota: string, semitonos: number): string {
-  let idx = NOTAS_SOSTENIDOS.indexOf(nota)
+function transponerNota(nota: string, semitonos: string | number): string {
+  let idx = NOTAS_SOSTENIDOS.indexOf(nota as string)
   let usaBoles = false
 
   if (idx === -1) {
-    idx = NOTAS_BEMAOLES.indexOf(nota)
+    idx = NOTAS_BEMAOLES.indexOf(nota as string)
     usaBoles = true
   }
 
   if (idx === -1) return nota || 'C'
 
   const escala = usaBoles ? NOTAS_BEMAOLES : NOTAS_SOSTENIDOS
-  const nuevoIdx = (idx + semitonos + 120) % 12
+  const nuevoIdx = (idx + (semitonos as number) + 120) % 12
   return escala[nuevoIdx]
 }
 
@@ -84,7 +85,6 @@ function limpiarAcordesParaCantante(texto: string): string {
 }
 
 export default function PopurriDetalleView({ popurriInicial = [], catalogo = [], onVolver }: Props) {
-  // Normalizamos las canciones para asegurarnos de que tengan todas las propiedades requeridas
   const cancionesNormalizadas: CancionPopurri[] = popurriInicial.map((item, index) => ({
     id: item.id || item.cancionId || `cancion-${index}`,
     titulo: item.titulo || 'Canción sin título',
@@ -99,6 +99,12 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
   const [transposicionesIndiv, setTransposicionesIndiv] = useState<Record<string, number>>({})
   const [transposicionGlobal, setTransposicionGlobal] = useState(0)
   const [modoVista, setModoVista] = useState<'musico' | 'cantante'>('musico')
+  const [isFullScreenOpen, setIsFullScreenOpen] = useState(false)
+
+  // Auto-ajuste de tamaño de letra en pantalla completa
+  const [tamanoLetraFS, setTamanoLetraFS] = useState(40)
+  const contenedorFSRef = useRef<HTMLDivElement>(null)
+  const textoFSRef = useRef<HTMLPreElement>(null)
 
   const cancionActiva = canciones[indiceActivo]
 
@@ -116,6 +122,37 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
   const textoFinal = modoVista === 'cantante' 
     ? limpiarAcordesParaCantante(textoTranspuesto)
     : textoTranspuesto
+
+  // ✅ AUTO-AJUSTE CORREGIDO: encoge la letra hasta un mínimo legible;
+  // si aun así no entra, el contenedor permite scroll (letra siempre completa)
+  useLayoutEffect(() => {
+    if (!isFullScreenOpen || !cancionActiva) return
+
+    const contenedor = contenedorFSRef.current
+    const texto = textoFSRef.current
+    if (!contenedor || !texto) return
+
+    // Al cambiar de canción o modo, volver arriba
+    contenedor.scrollTop = 0
+
+    const ajustarTamano = () => {
+      let tamano = 44
+      const minimo = 18 // piso legible para proyección en vivo
+
+      texto.style.fontSize = `${tamano}px`
+
+      while (texto.scrollHeight > contenedor.clientHeight && tamano > minimo) {
+        tamano -= 1
+        texto.style.fontSize = `${tamano}px`
+      }
+
+      setTamanoLetraFS(tamano)
+    }
+
+    ajustarTamano()
+    window.addEventListener('resize', ajustarTamano)
+    return () => window.removeEventListener('resize', ajustarTamano)
+  }, [isFullScreenOpen, indiceActivo, transposicionGlobal, transposicionesIndiv, modoVista, cancionActiva])
 
   const cambiarTransposicionIndividual = (cancionId: string, delta: number) => {
     setTransposicionesIndiv(prev => ({
@@ -185,7 +222,6 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
             </div>
           </div>
 
-          {/* Catálogo para agregar más rápido */}
           {catalogo.length > 0 && (
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -227,6 +263,14 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => setIsFullScreenOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0F2C4C] text-white font-bold text-xs hover:bg-[#1B5FA8] transition-all shadow-sm"
+              >
+                <ArrowsPointingOutIcon className="w-4 h-4 text-[#D9A544]"/>
+                Pantalla Completa
+              </button>
+
               {/* Transposición Global */}
               <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
                 <span className="text-xs font-bold text-slate-600 px-2">Tono Global:</span>
@@ -267,7 +311,6 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
                 </button>
               </div>
 
-              {/* Volver al Armador */}
               {onVolver && (
                 <button
                   onClick={onVolver}
@@ -356,6 +399,76 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
         </div>
 
       </div>
+
+      {/* MODAL DE PANTALLA COMPLETA */}
+      {isFullScreenOpen && cancionActiva && (
+        <div className="fixed inset-0 z-50 bg-[#0F2C4C] text-white flex flex-col p-6 md:p-10">
+          {/* Header */}
+          <div className="w-full flex items-center justify-between border-b border-white/10 pb-4 mb-4 shrink-0">
+            <div>
+              <span className="text-xs uppercase tracking-widest text-[#D9A544] font-bold">
+                Modo Presentación ({modoVista === 'musico' ? 'Músico' : 'Cantante'})
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold mt-1">{cancionActiva.titulo}</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 bg-white/10 rounded-lg font-bold text-xs">
+                Tono: {tonalidadCalculada}
+              </span>
+              <button
+                onClick={() => setIsFullScreenOpen(false)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/25 rounded-xl text-white font-bold text-xs transition-colors"
+              >
+                ✕ Cerrar
+              </button>
+            </div>
+          </div>
+
+          {cancionActiva.transicionSugerida && (
+            <div className="text-xs text-[#D9A544] italic bg-white/5 p-2.5 rounded-lg border border-white/5 mb-3 shrink-0">
+              💡 Transición: {cancionActiva.transicionSugerida}
+            </div>
+          )}
+
+          {/* ✅ ZONA DE LETRA CORREGIDA: auto-ajusta y, si no entra, scroll (nunca recorta) */}
+          <div
+            ref={contenedorFSRef}
+            className="flex-1 min-h-0 overflow-y-auto pr-2"
+          >
+            <pre
+              ref={textoFSRef}
+              className={`leading-relaxed whitespace-pre-wrap ${
+                modoVista === 'cantante' ? 'font-sans font-medium' : 'font-mono'
+              }`}
+            >
+              {textoFinal}
+            </pre>
+          </div>
+
+          {/* Navegación entre canciones del popurrí */}
+          <div className="w-full flex items-center justify-between border-t border-white/10 pt-4 mt-4 shrink-0">
+            <button
+              onClick={() => setIndiceActivo(prev => Math.max(0, prev - 1))}
+              disabled={indiceActivo === 0}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold disabled:opacity-30 transition-all"
+            >
+              <ChevronLeftIcon className="w-4 h-4" /> Anterior
+            </button>
+
+            <span className="text-xs text-white/50 font-medium">
+              Canción {indiceActivo + 1} de {canciones.length}
+            </span>
+
+            <button
+              onClick={() => setIndiceActivo(prev => Math.min(canciones.length - 1, prev + 1))}
+              disabled={indiceActivo === canciones.length - 1}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1B5FA8] hover:bg-[#164a85] text-white text-xs font-bold disabled:opacity-30 transition-all"
+            >
+              Siguiente <ChevronRightIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
