@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
+const TONOS_MAYORES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+const TONOS_MENORES = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'Abm', 'Am', 'Bbm', 'Bm']
+
 export function CrearCancionForm() {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
@@ -84,15 +87,24 @@ export function CrearCancionForm() {
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Tonalidad Base *
                     </label>
-                    <input
-                        type="text"
+                    <select
                         name="tonalidad"
                         value={formData.tonalidad}
                         onChange={handleChange}
-                        placeholder="Ej: E, G, C#m, Eb"
                         required
                         className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]"
-                    />
+                    >
+                        <optgroup label="Mayores">
+                            {TONOS_MAYORES.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
+                        </optgroup>
+                        <optgroup label="Menores">
+                            {TONOS_MENORES.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
+                        </optgroup>
+                    </select>
                 </div>
 
                 <div>
@@ -128,12 +140,13 @@ export function CrearCancionForm() {
             </div>
 
             <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-                <Link
-                    href="/admin"
+                <button
+                    type="button"
+                    onClick={() => router.back()}
                     className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200"
                 >
                     Cancelar
-                </Link>
+                </button>
                 <button
                     type="submit"
                     disabled={loading}

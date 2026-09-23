@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { CancionCard } from '@/components/canciones/CancionCard'
 import { 
-  MagnifyingGlassIcon, 
   FunnelIcon, 
   BookOpenIcon, 
   XMarkIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 
@@ -32,16 +32,19 @@ export default async function LluviasDeBendicionPage({
   const desde = (paginaActual - 1) * ELEMENTOS_POR_PAGINA
   const hasta = desde + ELEMENTOS_POR_PAGINA - 1
 
-  // Usamos ilike con comodín para evitar problemas de tilde (Bendicion vs Bendición)
   let query = supabase
     .from('canciones')
     .select('id, titulo, libro, tonalidad, tempo, temas', { count: 'exact' })
-    .ilike('libro', '%Lluvias%')
+    .ilike('libro', '%Lluvias de Bendicion%')
     .order('titulo')
+
+  // Filtro por búsqueda de tema / título
+  if (tema) {
+    query = query.or(`titulo.ilike.%${tema}%,temas.ilike.%${tema}%`)
+  }
 
   if (tonalidad) query = query.eq('tonalidad', tonalidad)
   if (tempo) query = query.eq('tempo', tempo)
-  if (tema) query = query.contains('temas', [tema])
 
   // Aplicar rango para la página activa
   query = query.range(desde, hasta)
@@ -97,15 +100,17 @@ export default async function LluviasDeBendicionPage({
       {/* Barra de Filtros Integrada */}
       <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-sm">
         <form method="GET" className="flex flex-col md:flex-row items-center gap-3">
-          {/* Búsqueda por Tema */}
-          <div className="relative flex-1 w-full">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          {/* Input de Búsqueda por Tema / Título */}
+          <div className="w-full md:flex-1 relative">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+              <MagnifyingGlassIcon className="h-4 w-4" />
+            </span>
             <input
               type="text"
               name="tema"
+              defaultValue={tema ?? ''}
               placeholder="Buscar por tema (ej: fidelidad, amor)..."
-              defaultValue={tema}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-[#1B5FA8] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]/20 transition-all"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-3 py-2 text-sm text-slate-700 focus:border-[#1B5FA8] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]/20 transition-all"
             />
           </div>
 
@@ -231,7 +236,7 @@ export default async function LluviasDeBendicionPage({
             <BookOpenIcon className="mx-auto h-10 w-10 text-slate-300" />
             <h3 className="mt-2 text-sm font-semibold text-slate-800">No se encontraron cantos</h3>
             <p className="mt-1 text-xs text-slate-500">
-              Prueba cambiando la tonalidad o borrando los filtros de búsqueda.
+              Prueba cambiando la búsqueda, tonalidad o borrando los filtros activos.
             </p>
             {hayFiltrosActivos && (
               <Link

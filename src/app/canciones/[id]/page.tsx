@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { CancionViewer } from '@/components/canciones/CancionViewer'
-import { ArrowLeftIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, PencilSquareIcon, UserIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
@@ -11,6 +11,9 @@ export default async function CancionDetailPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+
+  // ✅ ¿Hay sesión? (server-side)
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { data: cancion, error } = await supabase
     .from('canciones')
@@ -34,13 +37,23 @@ export default async function CancionDetailPage({
           Volver al directorio
         </Link>
 
-        <Link
-          href={`/admin/editar/${cancion.id}`}
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3.5 py-1.5 text-xs font-semibold text-[#0F2C4C] hover:bg-slate-200 transition-colors"
-        >
-          <PencilSquareIcon className="h-4 w-4" />
-          Editar Canción
-        </Link>
+        {user ? (
+          <Link
+            href={`/admin/editar/${cancion.id}`}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3.5 py-1.5 text-xs font-semibold text-[#0F2C4C] hover:bg-slate-200 transition-colors"
+          >
+            <PencilSquareIcon className="h-4 w-4" />
+            Editar Canción
+          </Link>
+        ) : (
+          <Link
+            href="/admin/login"
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3.5 py-1.5 text-xs font-semibold text-[#0F2C4C] hover:bg-slate-200 transition-colors"
+          >
+            <UserIcon className="h-4 w-4" />
+            Iniciar Sesión
+          </Link>
+        )}
       </div>
 
       {/* Cabecera de la Canción */}

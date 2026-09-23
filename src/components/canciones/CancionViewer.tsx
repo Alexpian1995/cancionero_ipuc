@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { transponerNota } from '@/lib/transpose'
 import { TransposerControls } from './TransposerControls'
 import { MusicalNoteIcon, UserIcon } from '@heroicons/react/24/outline'
 
@@ -11,9 +10,46 @@ interface Cancion {
   letra: string
 }
 
-// Regex optimizada para capturar notas/acordes individuales (sin capturar la / directamente como parte del acorde)
-const ACORDE_REGEX = /\b([A-G][b#]?(?:m|maj7|min7|m7|maj|dim|aug|sus[24]?|add[9]|\d)*)\b/g
+// ================= TRANSPOSICIÓN =================
+const SOSTENIDOS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+const BEMOLES    = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 
+function transponerNota(nota: string, semitonos: number): string {
+  let idx = SOSTENIDOS.indexOf(nota)
+  if (idx === -1) idx = BEMOLES.indexOf(nota)
+  if (idx === -1) return nota
+
+  let usaBemoles: boolean
+  if (nota.includes('#')) usaBemoles = false
+  else if (nota.includes('b')) usaBemoles = true
+  else usaBemoles = semitonos < 0
+
+  const escala = usaBemoles ? BEMOLES : SOSTENIDOS
+  return escala[(idx + semitonos + 120) % 12]
+}
+
+function transponerAcorde(acorde: string, semitonos: number): string {
+  if (semitonos === 0) return acorde
+
+  if (acorde.includes('/')) {
+    const [principal, bajo] = acorde.split('/')
+    return `${transponerAcorde(principal, semitonos)}/${transponerAcorde(bajo, semitonos)}`
+  }
+
+  const match = acorde.match(/^([A-G][#b]?)(.*)$/)
+  if (!match) return acorde
+  return transponerNota(match[1], semitonos) + match[2]
+}
+
+const ACORDE_REGEX =
+  /\b([A-G][#b]?(?:m7b5|maj7|min7|m7|dim7|aug7|sus[24]|add9|maj|min|dim|aug|m|\d)*(?:\/[A-G][#b]?)?)(?![A-Za-z0-9])/g
+
+function transponerLineaAcordes(linea: string, semitonos: number): string {
+  if (semitonos === 0 || !linea) return linea
+  return linea.replace(ACORDE_REGEX, (match) => transponerAcorde(match, semitonos))
+}
+
+// ================= COMPONENTE (named export) =================
 export function CancionViewer({ cancion }: { cancion?: Cancion }) {
   const [modo, setModo] = useState<'musico' | 'cantante'>('musico')
   const [semitonos, setSemitonos] = useState<number>(0)
@@ -23,29 +59,18 @@ export function CancionViewer({ cancion }: { cancion?: Cancion }) {
   }
 
   const tonalidadBase = cancion.tonalidad || 'E'
-  const tonalidadActual = transponerNota(tonalidadBase, semitonos, tonalidadBase)
+  const tonalidadActual = transponerNota(tonalidadBase, semitonos)
   const lineas = (cancion.letra || '').split('\n')
 
-  // Detecta si una línea contiene mayoritariamente acordes
   const esLineaDeAcordes = (linea: string) => {
     const palabras = linea.trim().split(/\s+/).filter(Boolean)
     if (palabras.length === 0) return false
-    
-    // Evalúa palabras ignorando barras de bajo
     const palabrasLimpia = linea.replace(/\//g, ' ').match(/\b[A-G][b#]?[^\s]*\b/g) || []
     return palabrasLimpia.length / palabras.length >= 0.4
   }
 
-  // Transpone individualmente cada nota o acorde en la línea respetando la / y manteniendo espacios
-  const transponerLineaAcordes = (linea: string) => {
-    return linea.replace(ACORDE_REGEX, (acorde) => 
-      transponerNota(acorde, semitonos, tonalidadBase)
-    )
-  }
-
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm max-w-4xl mx-auto space-y-6">
-      {/* Cabecera */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">{cancion.titulo}</h1>
@@ -58,7 +83,6 @@ export function CancionViewer({ cancion }: { cancion?: Cancion }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Selector Modo */}
           <div className="inline-flex p-1 bg-slate-100 rounded-xl">
             <button
               type="button"
@@ -86,7 +110,6 @@ export function CancionViewer({ cancion }: { cancion?: Cancion }) {
             </button>
           </div>
 
-          {/* Control Transposición */}
           {modo === 'musico' && (
             <TransposerControls
               semitonos={semitonos}
@@ -97,7 +120,6 @@ export function CancionViewer({ cancion }: { cancion?: Cancion }) {
         </div>
       </div>
 
-      {/* Visor de Letra y Acordes */}
       <div className="bg-slate-50/50 p-6 rounded-xl border border-slate-100 overflow-x-auto">
         <pre className="font-mono text-sm leading-relaxed text-slate-800 whitespace-pre">
           {lineas.map((linea, idx) => {
@@ -110,7 +132,7 @@ export function CancionViewer({ cancion }: { cancion?: Cancion }) {
             if (esAcorde) {
               return (
                 <span key={idx} className="block font-bold text-sky-600 select-none">
-                  {transponerLineaAcordes(linea)}
+                  {transponerLineaAcordes(linea, semitonos)}
                 </span>
               )
             }

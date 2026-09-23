@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  PlusIcon, 
-  TrashIcon, 
-  ArrowUpIcon, 
-  ArrowDownIcon, 
+import {
+  PlusIcon,
+  TrashIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
   MusicalNoteIcon,
   SparklesIcon,
   DocumentDuplicateIcon,
@@ -62,6 +62,25 @@ interface ArmadorPopurriProps {
   iglesiaId?: string
 }
 
+// Helper para detectar tonalidad en el prompt del usuario
+function detectarTonalidadDelPrompt(prompt: string): string | null {
+  const p = prompt.toLowerCase()
+
+  // "Dm", "F#m", "d menor", "d minor"
+  let m = p.match(/\b([a-g])\s*(#|b)?\s*(?:menor|minor|m)\b/)
+  if (m) return `${m[1].toUpperCase()}${m[2] || ''}m`
+
+  // "D mayor", "D major"
+  m = p.match(/\b([a-g])\s*(#|b)?\s*(?:mayor|major)\b/)
+  if (m) return `${m[1].toUpperCase()}${m[2] || ''}`
+
+  // "en D", "tono D", "tonalidad D"
+  m = p.match(/(?:tono|tonalidad|en|key)\s+([a-g])\s*(#|b)?\b/)
+  if (m) return `${m[1].toUpperCase()}${m[2] || ''}`
+
+  return null
+}
+
 export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], iglesiaId }: ArmadorPopurriProps) {
   const router = useRouter()
   const [nombrePopurri, setNombrePopurri] = useState('Nuevo Popurrí / Medley')
@@ -92,7 +111,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   const [cargando, setCargando] = useState(false)
   const [explicacion, setExplicacion] = useState('')
 
-  const normalizar = (str?: string | null) => 
+  const normalizar = (str?: string | null) =>
     str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""
 
   const obtenerNombreLider = () => {
@@ -118,29 +137,29 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   }
 
   const seleccionarPopurri = (popurriResumen: any) => {
-  setPopurriIdActual(popurriResumen.id)
-  setNombrePopurri(popurriResumen.titulo || 'Popurrí sin título')
-  setLiderId(popurriResumen.liderId || '')
-  setNombreLiderManual(popurriResumen.nombreLider || '')
+    setPopurriIdActual(popurriResumen.id)
+    setNombrePopurri(popurriResumen.titulo || 'Popurrí sin título')
+    setLiderId(popurriResumen.liderId || '')
+    setNombreLiderManual(popurriResumen.nombreLider || '')
 
-  const cancionesCargadas = (popurriResumen.canciones || []).map((item: any) => {
-    const infoCancion = item.canciones || {}
-    const idCancion = item.cancion_id || item.id || infoCancion.id
-    const delCatalogo = cancionesDisponibles.find((c) => c.id === idCancion)
+    const cancionesCargadas = (popurriResumen.canciones || []).map((item: any) => {
+      const infoCancion = item.canciones || {}
+      const idCancion = item.cancion_id || item.id || infoCancion.id
+      const delCatalogo = cancionesDisponibles.find((c) => c.id === idCancion)
 
-    return {
-      ...delCatalogo,   // letra, acordes, tempo, etc. del catálogo
-      ...infoCancion,   // lo que venga de la base pisa al catálogo
-      id: idCancion,
-      titulo: infoCancion.titulo || delCatalogo?.titulo || 'Canción sin título',
-      tonoSeleccionado: item.tonalidad || delCatalogo?.tonalidad || 'C',
-      notas: item.transicion || '',
-    }
-  })
+      return {
+        ...delCatalogo,
+        ...infoCancion,
+        id: idCancion,
+        titulo: infoCancion.titulo || delCatalogo?.titulo || 'Canción sin título',
+        tonoSeleccionado: item.tonalidad || delCatalogo?.tonalidad || 'C',
+        notas: item.transicion || '',
+      }
+    })
 
-  setSeleccionadas(cancionesCargadas)
-  setVistaBiblioteca(false)
-}
+    setSeleccionadas(cancionesCargadas)
+    setVistaBiblioteca(false)
+  }
 
   const obtenerCancionesFiltradas = () => {
     const noSeleccionadas = cancionesDisponibles.filter(
@@ -160,8 +179,8 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
       ? FAMILIAS_ARMONICAS[filtroTono]
       : [filtroTono]
 
-    const coincideTono = (c: Cancion) => 
-      filtroTono === 'todos' || 
+    const coincideTono = (c: Cancion) =>
+      filtroTono === 'todos' ||
       tonosCompatibles.some((t) => normalizar(t) === normalizar(c.tonalidad))
 
     const coincideTempo = (c: Cancion) =>
@@ -184,40 +203,46 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
 
   const { resultados: cancionesFiltradas, esFallback } = obtenerCancionesFiltradas()
 
-  const consultarSugerencias = async () => {
-    if (!promptBusqueda.trim()) return
-    setCargando(true)
-    setExplicacion('')
+ const consultarSugerencias = async () => {
+  if (!promptBusqueda.trim()) return
+  setCargando(true)
+  setExplicacion('')
 
-    try {
-      const res = await fetch('/api/popurri-ia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accion: 'sugerir_popurri',
-          prompt: promptBusqueda,
-          cancionesDisponibles
-        })
+  try {
+    const res = await fetch('/api/popurri-ia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        accion: 'sugerir_popurri',
+        prompt: promptBusqueda,
+        cancionesDisponibles
       })
+    })
 
-      const data = await res.json()
-      if (data.exito && data.sugerencias) {
+    const data = await res.json()
+
+    if (data.exito && Array.isArray(data.sugerencias)) {
+      const sugeridas = data.sugerencias.map((s: Cancion) => ({
+        ...s,
+        tonoSeleccionado: s.tonalidad || 'C',
+        notas: ''
+      }))
+
+      if (sugeridas.length === 0) {
+        setSeleccionadas([])
         setExplicacion(data.explicacion)
-
-        const nuevasSugeridas = data.sugerencias.map((s: Cancion) => ({
-          ...s,
-          tonoSeleccionado: s.tonalidad || 'C',
-          notas: ''
-        }))
-
-        setSeleccionadas(nuevasSugeridas)
+        return
       }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setCargando(false)
+
+      setExplicacion(data.explicacion)
+      setSeleccionadas(sugeridas)
     }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    setCargando(false)
   }
+}
 
   const pedirTransicion = async (idx: number) => {
     if (idx <= 0) return
@@ -339,25 +364,62 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   }
 
   const copiarResumen = () => {
-    const lider = obtenerNombreLider()
-    let texto = `*🎵 POPURRÍ: ${nombrePopurri.toUpperCase()} 🎵*\n`
-    if (lider) {
-      texto += `👤 *Líder:* ${lider}\n`
-    }
-    texto += `\n`
+  const lider = obtenerNombreLider()
 
-    seleccionadas.forEach((c, idx) => {
-      texto += `*${idx + 1}. ${c.titulo}*\n`
-      texto += `   • Tono: *${c.tonoSeleccionado}* ${c.tempo ? `(${c.tempo})` : ''}\n`
-      if (c.notas) texto += `   • Nota/Transición: _${c.notas}_\n`
-      if (idx < seleccionadas.length - 1) {
-        texto += `   ⬇️ _(Transición)_ \n`
-      }
-      texto += `\n`
-    })
-    navigator.clipboard.writeText(texto)
-    alert('¡Esquema de popurrí copiado al portapapeles!')
+  const NUMEROS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '']
+  const EMOJI_TEMPO: Record<string, string> = {
+    lento: '🕊️',
+    medio: '🎶',
+    rapido: '⚡',
+    rápido: '⚡',
   }
+  const DIV = '•┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•'
+
+  let texto = ''
+
+  // ═══════════ ENCABEZADO ═══════════
+  texto += `🎵✨ *POPURRÍ DE ADORACIÓN* ✨🎵\n`
+  texto += `━━━━━━━━━━━━━━━━━━━━━━\n`
+  texto += `📌 *${nombrePopurri.toUpperCase()}*\n`
+  if (lider) texto += `👤 Líder: *${lider}*\n`
+  texto += `🎼 ${seleccionadas.length} ${seleccionadas.length === 1 ? 'canción' : 'canciones'}\n\n`
+
+  // ═══════════ CANCIONES ═══════════
+  seleccionadas.forEach((c, idx) => {
+    texto += `${DIV}\n\n`
+
+    const num = NUMEROS[idx] ?? `*${idx + 1}.*`
+    texto += `${num} *${c.titulo.toUpperCase()}*\n\n`
+
+    // Si se cambió el tono original, lo marcamos
+    const cambio =
+      c.tonalidad && c.tonalidad !== c.tonoSeleccionado
+        ? `  ↩️ _(original: ${c.tonalidad})_`
+        : ''
+    texto += `🎹 Tono: *${c.tonoSeleccionado}*${cambio}\n`
+
+    const tempo = (c.tempo || '').toLowerCase()
+    if (tempo) texto += `${EMOJI_TEMPO[tempo] || '🎵'} Tempo: _${c.tempo}_\n`
+
+    // Transición hacia la siguiente canción
+    if (idx < seleccionadas.length - 1) {
+      const sig = seleccionadas[idx + 1]
+      texto += `\n⬇️ *${c.tonoSeleccionado} → ${sig.tonoSeleccionado}*`
+      if (sig.notas) texto += `\n🔄 _${sig.notas}_`
+      texto += `\n\n`
+    } else {
+      texto += '\n'
+    }
+  })
+
+  // ═══════════ CIERRE ═══════════
+  texto += `${DIV}\n\n`
+  texto += `🙏 *¡Bendiciones en el ministerio!*\n`
+  texto += `📲 _Generado con Cancionero IPUC_`
+
+  navigator.clipboard.writeText(texto)
+  alert('¡Esquema de popurrí copiado al portapapeles! 🎉')
+}
 
   if (modoEnVivo) {
     const popurriAdaptado = seleccionadas.map(item => ({
@@ -370,8 +432,8 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     }))
 
     return (
-      <PopurriDetalleView 
-        popurriInicial={popurriAdaptado} 
+      <PopurriDetalleView
+        popurriInicial={popurriAdaptado}
         catalogo={cancionesDisponibles}
         onVolver={() => setModoEnVivo(false)}
       />
@@ -396,7 +458,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
       {vistaBiblioteca ? (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h3 className="font-bold text-lg text-[#0F2C4C]">Biblioteca de Popurrís Guardados</h3>
-          
+
           {cargandoBiblioteca ? (
             <p className="text-xs text-slate-500 py-8 text-center">Cargando popurrís...</p>
           ) : popurrisGuardados.length === 0 ? (
@@ -404,8 +466,8 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {popurrisGuardados.map((item) => (
-                <div 
-                  key={item.id} 
+                <div
+                  key={item.id}
                   onClick={() => seleccionarPopurri(item)}
                   className="p-4 rounded-xl border border-slate-200 hover:border-[#1B5FA8] hover:shadow-md cursor-pointer transition-all bg-slate-50 hover:bg-white space-y-2"
                 >
@@ -432,7 +494,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                 <SparklesIcon className="w-5 h-5 text-[#D9A544]" />
                 <h3 className="font-bold text-sm">Sugeridor por Temática</h3>
               </div>
-              
+
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -462,11 +524,10 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                 <h2 className="font-bold font-display text-base text-[#0F2C4C]">Catálogo de Alabanzas</h2>
                 <button
                   onClick={() => setModoFiltroArmonico(!modoFiltroArmonico)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                    modoFiltroArmonico 
-                      ? 'bg-[#1B5FA8] text-white shadow-sm' 
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${modoFiltroArmonico
+                      ? 'bg-[#1B5FA8] text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                    }`}
                 >
                   <FunnelIcon className="w-3.5 h-3.5" />
                   {modoFiltroArmonico ? 'Filtro Armónico' : 'Sugerir por Tono'}
@@ -569,7 +630,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                   onChange={(e) => setNombrePopurri(e.target.value)}
                   className="text-xl font-bold font-display text-[#0F2C4C] bg-transparent border-b border-dashed border-slate-300 focus:border-[#1B5FA8] focus:outline-none py-1 w-full sm:w-auto"
                 />
-                
+
                 {seleccionadas.length > 0 && (
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
