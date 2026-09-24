@@ -62,11 +62,16 @@ export function CancionViewer({ cancion }: { cancion?: Cancion }) {
   const tonalidadActual = transponerNota(tonalidadBase, semitonos)
   const lineas = (cancion.letra || '').split('\n')
 
+  // Token de acorde válido: C, D#m, G/B, F#m7, Bsus4, E/G#...
+  const TOKEN_ACORDE =
+    /^[A-G][#b]?(?:m7b5|maj7|min7|m7|dim7|aug7|sus[24]|add9|maj|min|dim|aug|m|\d)*(?:\/[A-G][#b]?)?$/
+
   const esLineaDeAcordes = (linea: string) => {
     const palabras = linea.trim().split(/\s+/).filter(Boolean)
     if (palabras.length === 0) return false
-    const palabrasLimpia = linea.replace(/\//g, ' ').match(/\b[A-G][b#]?[^\s]*\b/g) || []
-    return palabrasLimpia.length / palabras.length >= 0.4
+    const acordes = palabras.filter((p) => TOKEN_ACORDE.test(p))
+    // Casi todos los tokens deben ser acordes reales para ser línea de acordes
+    return acordes.length > 0 && acordes.length / palabras.length >= 0.8
   }
 
   return (

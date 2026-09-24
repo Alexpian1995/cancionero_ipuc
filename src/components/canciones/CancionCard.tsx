@@ -55,26 +55,37 @@ export function CancionCard({ cancion, onDelete }: { cancion: any; onDelete?: (i
     }
   }
 
+  // Ícono de tempo según velocidad
+  const tempoKey = (cancion.tempo || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+  const iconoTempo = tempoKey.includes('rapid') ? '⚡' : tempoKey.includes('lent') ? '🕊️' : '🎵'
+
   return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all">
-      <Link 
-        href={`/canciones/${cancion.id}`} 
-        className="flex items-center gap-3 min-w-0 flex-1 mr-4 hover:opacity-80 transition-opacity"
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs hover:border-slate-300 transition-all">
+      {/* Fila 1: ícono + título SIEMPRE visible + tono */}
+      <Link
+        href={`/canciones/${cancion.id}`}
+        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
       >
-        <span className="text-amber-500 font-medium text-xs shrink-0">⚡</span>
-        <h3 className="font-semibold text-slate-800 text-sm truncate">{cancion.titulo}</h3>
+        <span className="shrink-0 text-base">{iconoTempo}</span>
+        <h3 className="min-w-0 flex-1 truncate font-semibold text-slate-800 text-sm">
+          {cancion.titulo}
+        </h3>
+        <span className="shrink-0 flex h-7 w-7 items-center justify-center text-xs font-bold text-sky-700 bg-sky-50 rounded-lg border border-sky-100">
+          {cancion.tonalidad || '—'}
+        </span>
       </Link>
 
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 rounded-lg">
+      {/* Fila 2: libro + acciones admin */}
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 rounded-lg">
           {cancion.categoria || cancion.libro || 'General'}
-        </span>
-        <span className="w-6 h-6 flex items-center justify-center text-xs font-bold text-sky-700 bg-sky-50 rounded-lg">
-          {cancion.tonalidad || 'C'}
         </span>
 
         {isAdmin && (
-          <div className="flex items-center gap-1 border-l border-slate-200 pl-2 ml-1">
+          <div className="flex shrink-0 items-center gap-1 border-l border-slate-200 pl-2">
             <Link
               href={`/admin/editar/${cancion.id}`}
               className="p-1.5 text-slate-400 hover:text-[#1B5FA8] hover:bg-slate-100 rounded-lg transition-colors"
