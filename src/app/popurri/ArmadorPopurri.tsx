@@ -60,6 +60,69 @@ const FAMILIAS_ARMONICAS: Record<string, string[]> = {
   'B': ['B', 'G#m', 'E', 'F#'],
 }
 
+// ═══════════════════════════════════════════════════════════════
+// TRANSPOSICIÓN (para que el Modo En Vivo refleje el tono elegido)
+// ═══════════════════════════════════════════════════════════════
+
+const SOSTENIDOS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+const BEMOLES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+
+function indiceNota(nota: string): number {
+  let i = SOSTENIDOS.indexOf(nota)
+  if (i === -1) i = BEMOLES.indexOf(nota)
+  return i
+}
+
+function distanciaSemitonos(origen: string, destino: string): number {
+  const a = indiceNota(origen)
+  const b = indiceNota(destino)
+  if (a === -1 || b === -1) return 0
+  return ((b - a) % 12 + 12) % 12
+}
+
+function transponerNota(nota: string, semitonos: number): string {
+  const idx = indiceNota(nota)
+  if (idx === -1) return nota
+  const escala = nota.includes('b') ? BEMOLES : SOSTENIDOS
+  return escala[(idx + semitonos) % 12]
+}
+
+function transponerAcorde(acorde: string, semitonos: number): string {
+  if (acorde.includes('/')) {
+    const [principal, bajo] = acorde.split('/')
+    return `${transponerAcorde(principal, semitonos)}/${transponerAcorde(bajo, semitonos)}`
+  }
+  const match = acorde.match(/^([A-G][#b]?)(.*)$/)
+  if (!match) return acorde
+  return transponerNota(match[1], semitonos) + match[2]
+}
+
+const ACORDE_REGEX =
+  /\b([A-G][#b]?(?:m7b5|maj7|min7|m7|dim7|aug7|sus[24]|add9|maj|min|dim|aug|m|\d)*(?:\/[A-G][#b]?)?)(?![A-Za-z0-9])/g
+
+function transponerLineaAcordes(linea: string, semitonos: number): string {
+  return linea.replace(ACORDE_REGEX, (match) => transponerAcorde(match, semitonos))
+}
+
+const TOKEN_ACORDE =
+  /^[A-G][#b]?(?:m7b5|maj7|min7|m7|dim7|aug7|sus[24]|add9|maj|min|dim|aug|m|\d)*(?:\/[A-G][#b]?)?$/
+
+function esLineaDeAcordes(linea: string): boolean {
+  const palabras = linea.trim().split(/\s+/).filter(Boolean)
+  if (palabras.length === 0) return false
+  const acordes = palabras.filter((p) => TOKEN_ACORDE.test(p))
+  return acordes.length > 0 && acordes.length / palabras.length >= 0.8
+}
+
+// Transpone SOLO las líneas de acordes, deja la letra intacta
+function transponerLetraCompleta(letra: string, semitonos: number): string {
+  if (!semitonos || !letra) return letra
+  return letra
+    .split('\n')
+    .map((linea) => (esLineaDeAcordes(linea) ? transponerLineaAcordes(linea, semitonos) : linea))
+    .join('\n')
+}
+
 interface ArmadorPopurriProps {
   cancionesDisponibles: Cancion[]
   lideresDisponibles?: Lider[]
@@ -354,7 +417,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
       rapido: '⚡',
       rápido: '⚡',
     }
-    const DIV = '•┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•'
+    const DIV = '•┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•'
 
     let texto = ''
 
@@ -397,15 +460,27 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     alert('¡Esquema de popurrí copiado al portapapeles! 🎉')
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // MODO EN VIVO: la letra viaja YA TRANSPUESTA al tono elegido
+  // ═══════════════════════════════════════════════════════════════
   if (modoEnVivo) {
-    const popurriAdaptado = seleccionadas.map(item => ({
-      id: item.id,
-      titulo: item.titulo,
-      tonalidadOriginal: item.tonalidad || 'C',
-      tonalidadActual: item.tonoSeleccionado,
-      letraConAcordes: item.acordes || item.letra || 'Letra y acordes no disponibles',
-      transicionSugerida: item.notas
-    }))
+    const popurriAdaptado = seleccionadas.map((item) => {
+      const tonoOrig = item.tonalidad || 'C'
+      const tonoSel = item.tonoSeleccionado || tonoOrig
+      const semitonos = distanciaSemitonos(tonoOrig, tonoSel)
+
+      return {
+        id: item.id,
+        titulo: item.titulo,
+        tonalidadOriginal: tonoSel,
+        tonalidadActual: tonoSel,
+        letraConAcordes: transponerLetraCompleta(
+          item.acordes || item.letra || 'Letra y acordes no disponibles',
+          semitonos
+        ),
+        transicionSugerida: item.notas,
+      }
+    })
 
     return (
       <PopurriDetalleView

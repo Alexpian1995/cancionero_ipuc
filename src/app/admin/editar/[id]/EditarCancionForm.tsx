@@ -17,8 +17,8 @@ interface Cancion {
 // ✅ Mismos valores que usa el formulario de CREAR (y que consultan las páginas de sección)
 const LIBROS = ['Lluvias de Bendición', 'Manantial de Inspiración', 'Coros y Adoración']
 
-const TONOS_MAYORES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
-const TONOS_MENORES = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'Abm', 'Am', 'Bbm', 'Bm']
+const TONOS_MAYORES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B']
+const TONOS_MENORES = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm']
 
 // Convierte valores viejos/inconsistentes de la BD al nombre canónico (ignora tildes)
 function normalizarLibro(libro?: string): string {
