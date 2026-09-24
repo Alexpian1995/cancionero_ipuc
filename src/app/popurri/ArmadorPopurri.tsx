@@ -16,7 +16,8 @@ import {
   PlayIcon,
   UserIcon,
   CheckIcon,
-  FolderIcon
+  FolderIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline'
 
 import PopurriDetalleView from './PopurriDetalleView'
@@ -32,6 +33,9 @@ type Cancion = {
   bpm?: number | null
   letra?: string
   acordes?: string
+  temas?: string[]
+  score?: number
+  razon?: string | null
 }
 
 type Lider = {
@@ -62,25 +66,6 @@ interface ArmadorPopurriProps {
   iglesiaId?: string
 }
 
-// Helper para detectar tonalidad en el prompt del usuario
-function detectarTonalidadDelPrompt(prompt: string): string | null {
-  const p = prompt.toLowerCase()
-
-  // "Dm", "F#m", "d menor", "d minor"
-  let m = p.match(/\b([a-g])\s*(#|b)?\s*(?:menor|minor|m)\b/)
-  if (m) return `${m[1].toUpperCase()}${m[2] || ''}m`
-
-  // "D mayor", "D major"
-  m = p.match(/\b([a-g])\s*(#|b)?\s*(?:mayor|major)\b/)
-  if (m) return `${m[1].toUpperCase()}${m[2] || ''}`
-
-  // "en D", "tono D", "tonalidad D"
-  m = p.match(/(?:tono|tonalidad|en|key)\s+([a-g])\s*(#|b)?\b/)
-  if (m) return `${m[1].toUpperCase()}${m[2] || ''}`
-
-  return null
-}
-
 export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], iglesiaId }: ArmadorPopurriProps) {
   const router = useRouter()
   const [nombrePopurri, setNombrePopurri] = useState('Nuevo Popurrí / Medley')
@@ -90,23 +75,19 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   const [seleccionadas, setSeleccionadas] = useState<Array<Cancion & { tonoSeleccionado: string; notas?: string }>>([])
   const [busqueda, setBusqueda] = useState('')
 
-  // Estados de interfaz y persistencia
   const [modoEnVivo, setModoEnVivo] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [guardadoExitoso, setGuardadoExitoso] = useState(false)
 
-  // Estados de Biblioteca de Popurrís
   const [vistaBiblioteca, setVistaBiblioteca] = useState(false)
   const [popurrisGuardados, setPopurrisGuardados] = useState<any[]>([])
   const [cargandoBiblioteca, setCargandoBiblioteca] = useState(false)
 
-  // Estados del Filtro Armónico
   const [modoFiltroArmonico, setModoFiltroArmonico] = useState(false)
   const [filtroTono, setFiltroTono] = useState('D')
   const [filtroTempo, setFiltroTempo] = useState('lento')
   const [filtroTipo, setFiltroTipo] = useState('todos')
 
-  // Estados Prompt de Búsqueda Temática
   const [promptBusqueda, setPromptBusqueda] = useState('')
   const [cargando, setCargando] = useState(false)
   const [explicacion, setExplicacion] = useState('')
@@ -203,46 +184,46 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
 
   const { resultados: cancionesFiltradas, esFallback } = obtenerCancionesFiltradas()
 
- const consultarSugerencias = async () => {
-  if (!promptBusqueda.trim()) return
-  setCargando(true)
-  setExplicacion('')
+  const consultarSugerencias = async () => {
+    if (!promptBusqueda.trim()) return
+    setCargando(true)
+    setExplicacion('')
 
-  try {
-    const res = await fetch('/api/popurri-ia', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        accion: 'sugerir_popurri',
-        prompt: promptBusqueda,
-        cancionesDisponibles
+    try {
+      const res = await fetch('/api/popurri-ia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accion: 'sugerir_popurri',
+          prompt: promptBusqueda,
+        })
       })
-    })
 
-    const data = await res.json()
+      const data = await res.json()
 
-    if (data.exito && Array.isArray(data.sugerencias)) {
-      const sugeridas = data.sugerencias.map((s: Cancion) => ({
-        ...s,
-        tonoSeleccionado: s.tonalidad || 'C',
-        notas: ''
-      }))
+      if (data.exito && Array.isArray(data.sugerencias)) {
+        const sugeridas = data.sugerencias.map((s: Cancion) => ({
+          ...s,
+          tonoSeleccionado: s.tonalidad || 'C',
+          notas: ''
+        }))
 
-      if (sugeridas.length === 0) {
-        setSeleccionadas([])
+        if (sugeridas.length === 0) {
+          setSeleccionadas([])
+          setExplicacion(data.explicacion)
+          return
+        }
+
         setExplicacion(data.explicacion)
-        return
+        setSeleccionadas(sugeridas)
       }
-
-      setExplicacion(data.explicacion)
-      setSeleccionadas(sugeridas)
+    } catch (err) {
+      console.error(err)
+      setExplicacion('Error al consultar sugerencias. Intentá de nuevo.')
+    } finally {
+      setCargando(false)
     }
-  } catch (err) {
-    console.error(err)
-  } finally {
-    setCargando(false)
   }
-}
 
   const pedirTransicion = async (idx: number) => {
     if (idx <= 0) return
@@ -364,62 +345,57 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   }
 
   const copiarResumen = () => {
-  const lider = obtenerNombreLider()
+    const lider = obtenerNombreLider()
 
-  const NUMEROS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '']
-  const EMOJI_TEMPO: Record<string, string> = {
-    lento: '🕊️',
-    medio: '🎶',
-    rapido: '⚡',
-    rápido: '⚡',
-  }
-  const DIV = '•┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•'
-
-  let texto = ''
-
-  // ═══════════ ENCABEZADO ═══════════
-  texto += `🎵✨ *POPURRÍ DE ADORACIÓN* ✨🎵\n`
-  texto += `━━━━━━━━━━━━━━━━━━━━━━\n`
-  texto += `📌 *${nombrePopurri.toUpperCase()}*\n`
-  if (lider) texto += `👤 Líder: *${lider}*\n`
-  texto += `🎼 ${seleccionadas.length} ${seleccionadas.length === 1 ? 'canción' : 'canciones'}\n\n`
-
-  // ═══════════ CANCIONES ═══════════
-  seleccionadas.forEach((c, idx) => {
-    texto += `${DIV}\n\n`
-
-    const num = NUMEROS[idx] ?? `*${idx + 1}.*`
-    texto += `${num} *${c.titulo.toUpperCase()}*\n\n`
-
-    // Si se cambió el tono original, lo marcamos
-    const cambio =
-      c.tonalidad && c.tonalidad !== c.tonoSeleccionado
-        ? `  ↩️ _(original: ${c.tonalidad})_`
-        : ''
-    texto += `🎹 Tono: *${c.tonoSeleccionado}*${cambio}\n`
-
-    const tempo = (c.tempo || '').toLowerCase()
-    if (tempo) texto += `${EMOJI_TEMPO[tempo] || '🎵'} Tempo: _${c.tempo}_\n`
-
-    // Transición hacia la siguiente canción
-    if (idx < seleccionadas.length - 1) {
-      const sig = seleccionadas[idx + 1]
-      texto += `\n⬇️ *${c.tonoSeleccionado} → ${sig.tonoSeleccionado}*`
-      if (sig.notas) texto += `\n🔄 _${sig.notas}_`
-      texto += `\n\n`
-    } else {
-      texto += '\n'
+    const NUMEROS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '']
+    const EMOJI_TEMPO: Record<string, string> = {
+      lento: '🕊️',
+      medio: '🎶',
+      rapido: '⚡',
+      rápido: '⚡',
     }
-  })
+    const DIV = '•┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•'
 
-  // ═══════════ CIERRE ═══════════
-  texto += `${DIV}\n\n`
-  texto += `🙏 *¡Bendiciones en el ministerio!*\n`
-  texto += `📲 _Generado con Cancionero IPUC_`
+    let texto = ''
 
-  navigator.clipboard.writeText(texto)
-  alert('¡Esquema de popurrí copiado al portapapeles! 🎉')
-}
+    texto += `🎵✨ *POPURRÍ DE ADORACIÓN* ✨🎵\n`
+    texto += `━━━━━━━━━━━━━━━━━━━━━━\n`
+    texto += `📌 *${nombrePopurri.toUpperCase()}*\n`
+    if (lider) texto += `👤 Líder: *${lider}*\n`
+    texto += `🎼 ${seleccionadas.length} ${seleccionadas.length === 1 ? 'canción' : 'canciones'}\n\n`
+
+    seleccionadas.forEach((c, idx) => {
+      texto += `${DIV}\n\n`
+
+      const num = NUMEROS[idx] ?? `*${idx + 1}.*`
+      texto += `${num} *${c.titulo.toUpperCase()}*\n\n`
+
+      const cambio =
+        c.tonalidad && c.tonalidad !== c.tonoSeleccionado
+          ? `  ↩️ _(original: ${c.tonalidad})_`
+          : ''
+      texto += `🎹 Tono: *${c.tonoSeleccionado}*${cambio}\n`
+
+      const tempo = (c.tempo || '').toLowerCase()
+      if (tempo) texto += `${EMOJI_TEMPO[tempo] || '🎵'} Tempo: _${c.tempo}_\n`
+
+      if (idx < seleccionadas.length - 1) {
+        const sig = seleccionadas[idx + 1]
+        texto += `\n⬇️ *${c.tonoSeleccionado} → ${sig.tonoSeleccionado}*`
+        if (sig.notas) texto += `\n🔄 _${sig.notas}_`
+        texto += `\n\n`
+      } else {
+        texto += '\n'
+      }
+    })
+
+    texto += `${DIV}\n\n`
+    texto += `🙏 *¡Bendiciones en el ministerio!*\n`
+    texto += `📲 _Generado con Cancionero IPUC_`
+
+    navigator.clipboard.writeText(texto)
+    alert('¡Esquema de popurrí copiado al portapapeles! 🎉')
+  }
 
   if (modoEnVivo) {
     const popurriAdaptado = seleccionadas.map(item => ({
@@ -489,45 +465,85 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-5 space-y-4">
+            {/* Sugeridor IA */}
             <div className="bg-gradient-to-br from-[#0F2C4C] to-[#1B5FA8] p-4 rounded-2xl text-white space-y-3 shadow-md">
               <div className="flex items-center gap-2">
                 <SparklesIcon className="w-5 h-5 text-[#D9A544]" />
-                <h3 className="font-bold text-sm">Sugeridor por Temática</h3>
+                <h3 className="font-bold text-sm">Asistente de IA para Popurrís</h3>
               </div>
 
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 <input
                   type="text"
                   value={promptBusqueda}
                   onChange={(e) => setPromptBusqueda(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && consultarSugerencias()}
                   placeholder="Ej: canciones sobre fidelidad de Dios"
                   className="w-full text-xs text-white placeholder:text-slate-300 bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#D9A544] font-medium"
                 />
+
                 <button
                   onClick={consultarSugerencias}
-                  disabled={cargando}
-                  className="bg-[#D9A544] text-[#0F2C4C] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#e8b95f] transition-colors shrink-0 disabled:opacity-50"
+                  disabled={cargando || !promptBusqueda.trim()}
+                  className="w-full bg-[#D9A544] text-[#0F2C4C] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#e8b95f] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {cargando ? 'Buscando...' : 'Sugerir'}
+                  {cargando ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Analizando canciones...
+                    </span>
+                  ) : (
+                    '✨ Sugerir canciones'
+                  )}
                 </button>
               </div>
 
               {explicacion && (
-                <p className="text-[11px] text-slate-100 bg-white/10 p-2.5 rounded-xl italic border border-white/10">
-                  ✨ {explicacion}
-                </p>
+                <div className="text-[11px] text-slate-100 bg-white/10 p-3 rounded-xl border border-white/10 space-y-2">
+                  <p className="italic flex items-start gap-2">
+                    <InformationCircleIcon className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{explicacion}</span>
+                  </p>
+
+                  {seleccionadas.length > 0 && seleccionadas.some(s => s.razon) && (
+                    <ul className="space-y-1.5 pl-6 pt-1 border-t border-white/10">
+                      {seleccionadas.slice(0, 6).map((c) => (
+                        <li key={c.id} className="flex items-start gap-1.5">
+                          <span className="text-[#D9A544] font-bold">•</span>
+                          <div className="min-w-0">
+                            <span className="font-semibold text-white">"{c.titulo}"</span>
+                            <span className="text-slate-300"> — {c.libro || 'Cancionero IPUC'}</span>
+                            {c.razon && (
+                              <p className="text-slate-300 italic text-[10px]">{c.razon}</p>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                      {seleccionadas.length > 6 && (
+                        <li className="text-[10px] text-slate-400 italic">
+                          +{seleccionadas.length - 6} más en el armador
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
               )}
             </div>
 
+            {/* Catálogo */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h2 className="font-bold font-display text-base text-[#0F2C4C]">Catálogo de Alabanzas</h2>
                 <button
                   onClick={() => setModoFiltroArmonico(!modoFiltroArmonico)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${modoFiltroArmonico
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                    modoFiltroArmonico
                       ? 'bg-[#1B5FA8] text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                  }`}
                 >
                   <FunnelIcon className="w-3.5 h-3.5" />
                   {modoFiltroArmonico ? 'Filtro Armónico' : 'Sugerir por Tono'}
@@ -704,6 +720,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                 <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
                   <MusicalNoteIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                   <p className="text-sm font-semibold text-slate-600">El Popurrí está vacío</p>
+                  <p className="text-xs text-slate-400 mt-1">Usá el asistente de IA o agregá canciones manualmente</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -734,6 +751,11 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                           </span>
                           <div>
                             <h4 className="font-bold text-slate-800 text-sm">{item.titulo}</h4>
+                            {item.score !== undefined && item.score > 0 && (
+                              <span className="text-[10px] text-emerald-600 font-semibold">
+                                ✨ Relevancia: {Math.min(item.score, 20)}/20
+                              </span>
+                            )}
                           </div>
                         </div>
 

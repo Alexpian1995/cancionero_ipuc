@@ -20,8 +20,11 @@ const LIBROS = ['Lluvias de Bendición', 'Manantial de Inspiración', 'Coros y A
 const TONOS_MAYORES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 const TONOS_MENORES = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'Abm', 'Am', 'Bbm', 'Bm']
 
-// Convierte valores viejos/inconsistentes de la BD al nombre canónico
+// Convierte valores viejos/inconsistentes de la BD al nombre canónico (ignora tildes)
 function normalizarLibro(libro?: string): string {
+  const sinTildes = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+
   const mapa: Record<string, string> = {
     'himnos': 'Manantial de Inspiración',
     'manantial de inspiracion': 'Manantial de Inspiración',
@@ -30,7 +33,8 @@ function normalizarLibro(libro?: string): string {
     'coros varios': 'Coros y Adoración',
     'coros': 'Coros y Adoración',
   }
-  const clave = (libro || '').trim().toLowerCase()
+
+  const clave = sinTildes(libro || '')
   return mapa[clave] || LIBROS[0]
 }
 
