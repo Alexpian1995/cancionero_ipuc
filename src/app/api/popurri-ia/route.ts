@@ -225,7 +225,9 @@ const VOCABULARIO_INFANTIL = [
      'globitos','leon','noe', 'abrham', 'moises', 'jonas', 'daniel', 'david', 'goliat', 'samuel',
       'telefono','amigo','arca','mono','perrito','gatito','conejo','pajarito','pajaritos',
       'caballito','caballitos','manitos','dedito','deditos','piecito','piececitos','ojito','ojitos',
-      'narizita','narizitas','amen','aleluya'
+      'narizita','narizitas','amen','mar','peces','pecesitos','pecesito','cielito','cielitos','solcito',
+      'solcitos','lunitas','lunita','trenecito','trenecitos','barquito','barquitos','globito','globitos'
+      
 
 
 ]
