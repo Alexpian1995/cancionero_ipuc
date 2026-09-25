@@ -222,7 +222,7 @@ const VOCABULARIO_INFANTIL = [
     'dibujos', 'dibujar','poderoso', 'valiente', 'valientes', 'valentia',
      'valentia','trenecito', 'barquito', 'barquitos','biblia', 'biblico', 'biblica', 'biblicos', 
      'biblicas', 'biblicamente', 'yoyo', 'pelota', 'pelotas', 'pelotita', 'pelotitas', 'globito', 
-     'globitos','leon','noe', 'abrham', 'moises', 'jonas', 'daniel', 'david', 'goliat', 'samuel', 'jesus',
+     'globitos','leon','noe', 'abrham', 'moises', 'jonas', 'daniel', 'david', 'goliat', 'samuel',
       'telefono','amigo','arca','mono','perrito','gatito','conejo','pajarito','pajaritos',
       'caballito','caballitos','manitos','dedito','deditos','piecito','piececitos','ojito','ojitos',
       'narizita','narizitas','amen','aleluya'
