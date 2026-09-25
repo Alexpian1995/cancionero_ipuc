@@ -29,40 +29,240 @@ function escapeRegex(s: string): string {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SINÓNIMOS Y VOCABULARIO SEMÁNTICO
+// GRUPOS SEMÁNTICOS CRISTIANOS (45+ temas de iglesia)
 // ═══════════════════════════════════════════════════════════════
 
-const SINONIMOS_TEMA: Record<string, string[]> = {
-  fe:        ['creer', 'confiar', 'confianza', 'creo'],
-  esperanza: ['esperar', 'futuro', 'manana', 'promesa', 'promesas'],
-  amor:      ['amar', 'amado', 'amada', 'querer'],
-  gracia:    ['favor', 'misericordia', 'compasion'],
-  perdon:    ['perdonar', 'perdona', 'limpio'],
-  salvacion: ['salvar', 'salvador', 'salvo', 'redimir', 'redentor'],
-  paz:       ['tranquilidad', 'calma', 'sosiego', 'reposo'],
-  gozo:      ['alegria', 'gozoso', 'jubilo', 'feliz', 'celebrar', 'regocijo'],
-  adoracion: ['adorar', 'postrarse', 'rendirse'],
-  alabanza:  ['alabar', 'exaltar', 'magnificar'],
-  fidelidad: ['fiel', 'cumple', 'prometido'],
-  cruz:      ['calvario', 'madero', 'crucificado'],
-  resurreccion: ['resucito', 'resucitar', 'vive', 'levanto'],
-  santidad:  ['santo', 'puro', 'limpio'],
-  poder:     ['poderoso', 'fuerte', 'fortaleza'],
-  gloria:    ['glorioso', 'majestad'],
-  refugio:   ['esconder', 'proteccion', 'amparo', 'refugiarse'],
-  guia:      ['guiar', 'camino', 'direccion', 'conducir'],
-  consuelo:  ['consolar', 'alivio', 'confortar'],
-  presencia: ['estar aqui', 'cerca', 'acompana', 'junto a mi'],
-  padre:     ['papa', 'abba', 'hijo'],
-  espiritu:  ['espiritu santo', 'fuego', 'llama', 'consolador'],
-  sangre:    ['derramada', 'cordero'],
-  nombre:    ['jesus', 'yeshua'],
+type GrupoTema = { claves: string[]; sinonimos: string[]; raices: string[] }
+
+const GRUPOS_TEMA: GrupoTema[] = [
+  // ─── 🌟 UNICIDAD DE DIOS (doctrina central IPUC) ───
+  {
+    claves: [
+      'unicidad', 'uno', 'unico Dios', 'un solo Dios', 'Dios es uno',
+      'deidad', 'deidad de Cristo', 'plenitud de la deidad',
+      'Jesucristo es Dios', 'Jesus es Dios', 'Cristo es Dios',
+      'Dios manifestado en carne', 'Dios en carne', 'manifestacion',
+      'Padre en Cristo', 'el Padre es Jesus', 'el Padre es el Hijo',
+      'uno es su nombre', 'su nombre es Jesus', 'nombre de Jesus',
+      'Jehova es Jesus', 'YHWH', 'YO SOY', 'Emanuel', 'Dios con nosotros',
+      'monoteismo', 'no trinidad', 'un solo Señor', 'un solo nombre'
+    ],
+    sinonimos: [
+      'Dios es uno solo', 'el nombre sobre todo nombre', 'Colosenses 2:9',
+      'un solo Dios verdadero', 'la deidad habita en Cristo'
+    ],
+    raices: ['unic', 'deidad', 'manifest']
+  },
+
+  // ───  EVANGELISMO EXPANDIDO (llamado al altar, predicación) ───
+  {
+    claves: [
+      'evangelismo', 'evangelio', 'evangelizar', 'buenas nuevas', 'mensaje de salvacion',
+      'mision', 'misiones', 'testigo', 'predicar', 'anunciar', 'predicacion',
+      'ven a Cristo', 'ven a Jesus', 'ven', 'acercate', 'acercarse', 'llamado', 'invitacion',
+      'Cristo te ama', 'Jesus te ama', 'amor de Dios', 'amor de Cristo', 'amor incondicional',
+      'amigo', 'amistad', 'Cristo es mi amigo', 'Jesus es mi amigo',
+      'pecador', 'pecadora', 'pecadores', 'perdido', 'perdida', 'alejado', 'extraviado',
+      'arrepentimiento', 'arrepentirse', 'volverse a Dios', 'conversion',
+      'salvacion', 'salvar', 'salvador', 'salvo', 'salva',
+      'redencion', 'redimir', 'redentor', 'rescate', 'rescatar', 'rescatado',
+      'libertad', 'libre', 'liberar', 'liberacion', 'cadenas rotas', 'romper cadenas',
+      'perdon', 'perdonar', 'perdonado', 'limpio', 'lavado', 'purificado',
+      'nueva vida', 'nueva criatura', 'nacer de nuevo', 'nuevo nacimiento', 'transformacion',
+      'gracia', 'misericordia', 'clemencia',
+      'sangre de Cristo', 'sangre de Jesus', 'sangre que limpia',
+      'cruz', 'calvario', 'sacrificio', 'precio pagado',
+      'bautismo', 'bautizar', 'bautizado', 'aguas', 'en el nombre de Jesus',
+      'recibir a Cristo', 'aceptar a Cristo', 'entregar vida', 'rendir vida',
+      'llamado al altar', 'pase al frente', 'decision',
+      // 🆕 Frases típicas de llamado al altar / invitación
+      'oye', 'escucha', 'ven a el', 'ven hoy', 'acercate a dios',
+      'entregas tu vida', 'entregale tu vida', 'dale tu vida', 'rendir tu vida',
+      'el te ama', 'el te quiere', 'te quiere ayudar', 'quiere cambiar tu vida',
+      'cambiar tu vida', 'nueva oportunidad', 'hoy es el dia',
+      'segunda venida', 'viene a buscar', 'viene por su iglesia', 'no se tarda',
+      'volar al cielo', 'se pierda', 'que nadie se pierda'
+    ],
+    sinonimos: [
+      'ganar almas', 'alma', 'almas', 'proposito eterno',
+      'hijo prodigo', 'la oveja perdida', 'el buen pastor'
+    ],
+    raices: ['evangel', 'salv', 'redim', 'liber', 'perdon', 'rescat', 'pecad', 'amig', 'nuev', 'arrepient', 'convert', 'invit', 'llamad', 'bautiz', 'acerc']
+  },
+
+  // ─── FE Y RELACIÓN CON DIOS ───
+  { claves: ['fe', 'creer', 'confiar', 'confianza', 'creo'], sinonimos: ['fiar'], raices: ['confi'] },
+  { claves: ['esperanza', 'esperar', 'futuro', 'promesa', 'promesas'], sinonimos: ['manana', 'anhelo'], raices: ['esper'] },
+  { claves: ['amor', 'amar', 'amado', 'amada', 'querer', 'carino'], sinonimos: [], raices: [] },
+  { claves: ['gracia', 'favor', 'misericordia', 'compasion', 'bondad'], sinonimos: [], raices: [] },
+  { claves: ['paz', 'tranquilidad', 'calma', 'sosiego', 'reposo', 'descanso'], sinonimos: ['shalom'], raices: [] },
+  { claves: ['gozo', 'alegria', 'jubilo', 'feliz', 'regocijo', 'celebrar', 'contento'], sinonimos: ['gozoso', 'felices'], raices: ['goz'] },
+  { claves: ['fidelidad', 'fiel', 'cumple', 'prometido', 'lealtad'], sinonimos: [], raices: ['fidel'] },
+  { claves: ['santidad', 'santo', 'puro', 'limpio', 'apartado'], sinonimos: [], raices: ['sant'] },
+  { claves: ['humildad', 'humilde', 'sencillo', 'manso'], sinonimos: [], raices: ['humill'] },
+  { claves: ['paciencia', 'paciente', 'esperar', 'longanimidad'], sinonimos: [], raices: ['pacien'] },
+  { claves: ['sabiduria', 'sabio', 'entendimiento', 'discernimiento'], sinonimos: [], raices: [] },
+  { claves: ['obediencia', 'obedecer', 'cumplir', 'someterse'], sinonimos: [], raices: ['obedec'] },
+
+  // ─── GRATITUD ───
+  { claves: ['gracias', 'agradecimiento', 'gratitud', 'agradecer', 'grato', 'dar gracias'], sinonimos: ['reconocido'], raices: ['agradec'] },
+
+  // ─── VICTORIA ───
+  { claves: ['victoria', 'triunfo', 'vencedor', 'conquistar'], sinonimos: [], raices: [] },
+
+  // ─── ADORACIÓN Y ALABANZA ───
+  { claves: ['adoracion', 'adorar', 'postrarse', 'rendirse', 'reverencia'], sinonimos: [], raices: ['ador'] },
+  { claves: ['alabanza', 'alabar', 'exaltar', 'magnificar', 'exaltacion'], sinonimos: [], raices: ['alab'] },
+  { claves: ['ofrenda', 'diezmo', 'dar', 'generosidad', 'generoso'], sinonimos: [], raices: [] },
+
+  // ─── CRUZ, PASIÓN Y RESURRECCIÓN ───
+  { claves: ['cruz', 'calvario', 'madero', 'crucificado', 'pasion'], sinonimos: ['getsemani'], raices: [] },
+  { claves: ['sangre', 'derramada', 'cordero', 'expiacion'], sinonimos: [], raices: [] },
+  { claves: ['resurreccion', 'resucito', 'resucitar', 'vive', 'levanto', 'sepulcro vacio'], sinonimos: [], raices: ['resucit'] },
+
+  // ─── NOMBRE DE JESÚS ───
+  { claves: ['nombre', 'jesus', 'yeshua', 'cristo', 'senor de senores', 'rey de reyes'], sinonimos: ['nombre sobre todo nombre'], raices: [] },
+
+  // ─── ESPÍRITU SANTO ───
+  { claves: ['espiritu', 'fuego', 'llama', 'consolador', 'espiritu santo', 'espiritu de Dios', 'don del espiritu'], sinonimos: ['paracleto', 'lenguas'], raices: [] },
+
+  // ─── DIOS Y SUS ATRIBUTOS ───
+  { claves: ['padre', 'papa', 'abba', 'papito'], sinonimos: [], raices: [] },
+  { claves: ['poder', 'poderoso', 'fuerte', 'fortaleza', 'omnipotente'], sinonimos: [], raices: [] },
+  { claves: ['gloria', 'glorioso', 'majestad', 'majestuoso'], sinonimos: [], raices: ['glor'] },
+
+  // ─── PROTECCIÓN Y REFUGIO ───
+  { claves: ['refugio', 'esconder', 'proteccion', 'amparo', 'refugiarse', 'escondedero'], sinonimos: [], raices: [] },
+  { claves: ['escudo', 'defensa', 'guardar', 'custodiar', 'proteger'], sinonimos: [], raices: [] },
+  { claves: ['guia', 'guiar', 'camino', 'direccion', 'conducir', 'sendero'], sinonimos: [], raices: [] },
+  { claves: ['pastor', 'oveja', 'ovejas', 'apacentar', 'cuidado'], sinonimos: [], raices: [] },
+
+  // ─── CONSUELO Y AYUDA ───
+  { claves: ['consuelo', 'consolar', 'alivio', 'confortar', 'consolador'], sinonimos: [], raices: ['consuel', 'consol'] },
+  { claves: ['sanidad', 'sanar', 'sanador', 'curacion', 'curar', 'salud'], sinonimos: [], raices: ['san', 'cur'] },
+  { claves: ['provision', 'proveer', 'sustento', 'abastecer', 'jireh'], sinonimos: [], raices: ['prove'] },
+  { claves: ['presencia', 'cerca', 'acompana', 'junto a mi', 'aqui estas'], sinonimos: [], raices: [] },
+
+  // ─── COSECHA Y LUZ ───
+  { claves: ['cosecha', 'segar', 'sembrar', 'siembra', 'fruto', 'frutos'], sinonimos: [], raices: [] },
+  { claves: ['luz', 'luminoso', 'brillar', 'iluminar', 'antorcha', 'sal'], sinonimos: [], raices: [] },
+
+  // ─── CREACIÓN (tema lírico, distinto de "infantil") ───
+  { claves: ['creacion', 'crear', 'universo', 'estrellas', 'luna', 'sol', 'naturaleza', 'cielos', 'montes'], sinonimos: [], raices: ['crea'] },
+
+  // ─── FAMILIA Y RELACIONES ───
+  { claves: ['familia', 'hogar', 'casa', 'matrimonio', 'esposos', 'boda', 'aniversario'], sinonimos: [], raices: [] },
+  { claves: ['hijos', 'hijo', 'hija', 'hijas', 'padres', 'madre', 'papa', 'mama'], sinonimos: [], raices: [] },
+  { claves: ['unidad', 'unidad de la iglesia', 'iglesia', 'comunidad', 'hermandad', 'cuerpo', 'hermanos'], sinonimos: [], raices: [] },
+
+  // ─── SANTA CENA ───
+  { claves: ['santa cena', 'comunion', 'cena del senor', 'partir el pan', 'copa', 'pan'], sinonimos: [], raices: [] },
+
+  // ─── ORACIÓN Y VIDA ESPIRITUAL ───
+  { claves: ['oracion', 'orar', 'rezar', 'clamar', 'pedir', 'intercesion'], sinonimos: [], raices: ['or'] },
+  { claves: ['ayuno', 'ayunar', 'sacrificio', 'disciplina'], sinonimos: [], raices: ['ayun'] },
+  { claves: ['palabra', 'biblia', 'escritura', 'versiculo', 'evangelio escrito'], sinonimos: [], raices: [] },
+  { claves: ['uncion', 'ungir', 'aceite', 'derramar'], sinonimos: [], raices: ['ung', 'unci'] },
+
+  // ─── HECHOS 2:38 (doctrina IPUC) ───
+  { claves: ['Hechos 2:38', 'Hechos dos treinta y ocho', 'nuevo nacimiento', 'nacer de nuevo', 'plan de salvacion'], sinonimos: [], raices: [] },
+
+  // ─── TIEMPOS ESPECIALES ───
+  { claves: ['navidad', 'nacimiento', 'pesebre', 'belen', 'reyes magos', 'pastores', 'angel', 'estrella'], sinonimos: [], raices: ['navid'] },
+  { claves: ['pascua', 'semana santa', 'cuaresma', 'viernes santo'], sinonimos: [], raices: [] },
+
+  // ─── AVIVAMIENTO Y GUERRA ESPIRITUAL ───
+  { claves: ['avivamiento', 'avivar', 'fuego', 'llama', 'renovar', 'despertar'], sinonimos: [], raices: ['aviv'] },
+  { claves: ['guerra espiritual', 'batalla', 'armadura', 'enemigo', 'diablo', 'satanas', 'tinieblas', 'demonio'], sinonimos: [], raices: [] },
+  { claves: ['segunda venida', 'venida', 'arrebatamiento', 'cielo nuevo', 'eternidad', 'recogida'], sinonimos: [], raices: [] },
+
+  // ─── IDENTIDAD Y METÁFORAS BÍBLICAS ───
+  { claves: ['agua viva', 'rio', 'fuente', 'manantial', 'sed'], sinonimos: [], raices: [] },
+  { claves: ['pan de vida', 'pan', 'alimento', 'hambre'], sinonimos: [], raices: [] },
+  { claves: ['vid', 'parra', 'ramas', 'fruto', 'permanecer'], sinonimos: [], raices: [] },
+  { claves: ['puerta', 'camino', 'verdad', 'roca', 'piedra angular'], sinonimos: [], raices: [] },
+  { claves: ['reino', 'reino de Dios', 'trono', 'gobernar', 'rey'], sinonimos: [], raices: [] },
+  { claves: ['lluvia', 'bendicion', 'bendecir', 'abundancia'], sinonimos: [], raices: ['bend'] },
+]
+
+// Índice inverso para búsqueda rápida
+const INDICE_GRUPOS = new Map<string, GrupoTema[]>()
+for (const grupo of GRUPOS_TEMA) {
+  for (const palabra of [...grupo.claves, ...grupo.sinonimos]) {
+    const lista = INDICE_GRUPOS.get(palabra) || []
+    lista.push(grupo)
+    INDICE_GRUPOS.set(palabra, lista)
+  }
+}
+
+function variantesDeGrupo(grupo: GrupoTema) {
+  const raices = grupo.raices || []
+  const exactas = [...new Set([...grupo.claves, ...grupo.sinonimos])].filter(
+    (v) => !raices.some((r) => v.startsWith(r))
+  )
+  return { exactas, raices }
 }
 
 const PALABRAS_VACIAS_TEMA = new Set([
   'dios', 'senor', 'jesus', 'cristo', 'aleluya', 'amen', 'cielo', 'tierra',
   'corazon', 'alma', 'vida', 'mundo', 'hoy', 'siempre', 'eterno'
 ])
+
+// ═══════════════════════════════════════════════════════════════
+// DETECTOR DE ESTILO INFANTIL (heurísticas de lenguaje)
+// ═══════════════════════════════════════════════════════════════
+
+const VOCABULARIO_INFANTIL = [
+  'animalitos', 'arbolitos', 'jesusito', 'mamita', 'papito', 'manitos',
+  'ojitos', 'corazoncito', 'amiguito', 'amiguitos', 'ninito', 'pequenito',
+  'cabecita', 'deditos', 'piececitos', 'sonrisita'
+]
+
+const HISTORIAS_BIBLICAS_INFANTILES: [RegExp, number][] = [
+  [/\bnoe\b[\s\S]{0,80}\barca\b|\barca\b[\s\S]{0,80}\bnoe\b/i, 2],
+  [/\bdaniel\b[\s\S]{0,80}\bleones\b/i, 2],
+  [/\bjonas\b[\s\S]{0,80}\bballena\b|\bballena\b[\s\S]{0,80}\bjonas\b/i, 2],
+  [/\bdavid\b[\s\S]{0,80}\bgoliat\b/i, 2],
+  [/\bsamuel\b[\s\S]{0,60}\bnino\b|\bnino\b[\s\S]{0,60}\bsamuel\b/i, 2],
+]
+
+function detectarEstiloInfantil(letra: string): number {
+  const texto = normalizarTexto(letra || '')
+  if (!texto) return 0
+
+  let score = 0
+
+  // 1) Diminutivos: la señal más fuerte (-ito, -ita, -itos, -itas)
+  const diminutivos = texto.match(/\b[a-z]+(?:ito|ita|itos|itas)\b/g) || []
+  const diminutivosUnicos = new Set(diminutivos)
+  score += Math.min(diminutivosUnicos.size, 4) * 1.5
+
+  // 2) Vocabulario típico de canciones infantiles cristianas
+  for (const palabra of VOCABULARIO_INFANTIL) {
+    if (texto.includes(palabra)) score += 2
+  }
+
+  // 3) Historias bíblicas clásicas de escuela dominical
+  for (const [patron, puntos] of HISTORIAS_BIBLICAS_INFANTILES) {
+    if (patron.test(texto)) score += puntos
+  }
+
+  // 4) Frases didácticas simples de niños
+  if (/\bpor fe yo se\b|\byo se que mi dios\b|\bjesus me ama\b|\bdios me ama\b/.test(texto)) score += 2
+
+  return score
+}
+
+// Una canción es infantil si: está marcada, tiene tag, o el estilo lo delata
+function esCancionInfantil(cancion: any): boolean {
+  const tipoBD = normalizarTexto(cancion.tipo || '')
+  const tags: string[] = Array.isArray(cancion.temas)
+    ? cancion.temas.map((t: string) => normalizarTexto(t))
+    : []
+  if (tipoBD.includes('infantil')) return true
+  if (tags.some((t) => ['infantil', 'infantiles', 'ninos', 'escuela dominical', 'ebd'].includes(t))) return true
+  return detectarEstiloInfantil(cancion.letra) >= 4
+}
 
 // ═══════════════════════════════════════════════════════════════
 // PUNTUACIÓN DE RELEVANCIA
@@ -76,16 +276,39 @@ function puntuarTema(cancion: any, palabrasTema: string[]): number {
     : []
 
   let score = 0
+  const gruposProcesados = new Set<any>()
 
   for (const palabra of palabrasTema) {
-    const variantes = [palabra, ...(SINONIMOS_TEMA[palabra] || [])]
-    for (const v of variantes) {
-      const re = new RegExp(`\\b${escapeRegex(v)}\\b`, 'g')
-      if (tags.includes(v)) score += 10
-      const enTitulo = titulo.match(re)
-      if (enTitulo) score += 5 * enTitulo.length
-      const enLetra = letra.match(re)
-      if (enLetra) score += Math.min(enLetra.length, 5)
+    const grupos = INDICE_GRUPOS.get(palabra) || []
+    const lista = grupos.length > 0
+      ? grupos
+      : [{ claves: [palabra], sinonimos: [], raices: [] } as GrupoTema]
+
+    for (const grupo of lista) {
+      const id = grupos.length > 0 ? grupo : `simple:${palabra}`
+      if (gruposProcesados.has(id)) continue
+      gruposProcesados.add(id)
+
+      const { exactas, raices } = variantesDeGrupo(grupo)
+
+      // Palabras exactas (título +5, letra +1 c/u máx 5, tags +10)
+      for (const v of exactas) {
+        const re = new RegExp(`\\b${escapeRegex(v)}\\b`, 'g')
+        if (tags.includes(v)) score += 10
+        const t = titulo.match(re)
+        if (t) score += 5 * t.length
+        const l = letra.match(re)
+        if (l) score += Math.min(l.length, 5)
+      }
+
+      // 🔧 Raíces con MÁS PESO: capturan familias completas (salv→salvacion/salvar/salvo)
+      for (const raiz of raices) {
+        const re = new RegExp(`\\b${escapeRegex(raiz)}[a-z]*\\b`, 'g')
+        const t = titulo.match(re)
+        if (t) score += 2 * t.length
+        const l = letra.match(re)
+        if (l) score += Math.min(l.length, 8) * 1.5
+      }
     }
   }
 
@@ -99,39 +322,36 @@ function puntuarTema(cancion: any, palabrasTema: string[]): number {
 function generarRazon(cancion: any, palabrasTema: string[]): string {
   const titulo = normalizarTexto(cancion.titulo || '')
   const letra = normalizarTexto(cancion.letra || '')
-  const tags: string[] = Array.isArray(cancion.temas)
-    ? cancion.temas.map((t: string) => normalizarTexto(t))
-    : []
 
-  const coincidencias: string[] = []
   const enTitulo: string[] = []
   const enLetra: string[] = []
 
   for (const palabra of palabrasTema) {
-    const variantes = [palabra, ...(SINONIMOS_TEMA[palabra] || [])]
-    for (const v of variantes) {
-      const re = new RegExp(`\\b${escapeRegex(v)}\\b`, 'g')
-      if (tags.includes(v)) coincidencias.push(v)
-      if (titulo.match(re)) enTitulo.push(v)
-      if (letra.match(re)) enLetra.push(v)
+    const grupos = INDICE_GRUPOS.get(palabra) || []
+    const lista = grupos.length > 0
+      ? grupos
+      : [{ claves: [palabra], sinonimos: [], raices: [] } as GrupoTema]
+
+    for (const grupo of lista) {
+      const { exactas, raices } = variantesDeGrupo(grupo)
+      const patrones = [
+        ...exactas.map((v) => new RegExp(`\\b${escapeRegex(v)}\\b`, 'g')),
+        ...raices.map((r) => new RegExp(`\\b${escapeRegex(r)}[a-z]*\\b`, 'g')),
+      ]
+      for (const re of patrones) {
+        const t = titulo.match(re)
+        if (t) enTitulo.push(...t)
+        const l = letra.match(re)
+        if (l) enLetra.push(...l)
+      }
     }
   }
 
-  if (enTitulo.length > 0) {
-    const unicas = [...new Set(enTitulo)].slice(0, 2)
-    return `Habla de ${unicas.join(' y ')} en su título y letra`
-  }
+  const limpiar = (arr: string[]) =>
+    [...new Set(arr.map((w) => w.replace(/[,.;:!]/g, '')))].slice(0, 2)
 
-  if (coincidencias.length > 0 && enLetra.length > 0) {
-    const unicas = [...new Set([...coincidencias, ...enLetra])].slice(0, 2)
-    return `Toca temas de ${unicas.join(' y ')}`
-  }
-
-  if (enLetra.length > 0) {
-    const unicas = [...new Set(enLetra)].slice(0, 2)
-    return `Menciona ${unicas.join(' y ')} en su letra`
-  }
-
+  if (enTitulo.length > 0) return `Habla de ${limpiar(enTitulo).join(' y ')} en su título y letra`
+  if (enLetra.length > 0) return `Menciona ${limpiar(enLetra).join(' y ')} en su letra`
   return 'Encaja con tu búsqueda'
 }
 
@@ -188,8 +408,8 @@ function extraerTonalidades(prompt: string): string[] {
     if (mayus) {
       for (const tok of mayus) {
         if (tok === 'A') continue
-        const m = tok.match(/^([A-G])(#|b)?([mM])?$/)
-        if (m) agregar(m[1].toLowerCase(), m[2], m[3])
+        const m = tok.match(/^([A-G](?:#|b)?)([mM])?$/)
+        if (m) agregar(m[1][0].toLowerCase(), m[1][1], m[2])
       }
     }
   }
@@ -245,6 +465,7 @@ function extraerTipo(prompt: string): string | null {
   if (/\b(himnos?|himnario)\b/.test(p)) return 'himno'
   if (/\badoracion\b/.test(p)) return 'adoracion'
   if (/\b(alabanzas?)\b/.test(p)) return 'alabanza'
+  if (/\b(infantil|infantiles|ninos|de ninos|escuela dominical|ebd)\b/.test(p)) return 'infantil'
   return null
 }
 
@@ -263,7 +484,8 @@ function extraerCantidad(prompt: string): number | null {
 
 function extraerTema(prompt: string): string | null {
   const p = normalizarTexto(prompt)
-  const stopwords = /\b(dame|da|das|me|te|se|nos|les|mi|mis|tu|tus|su|sus|hasme|hazme|haz|hacer|crea|creame|crear|arma|armame|armar|genera|generame|generar|busca|buscame|buscar|ponme|poneme|pon|pasame|pasa|trae|traeme|quiero|necesito|pide|pideme|elige|selecciona|seleccioname|prepara|preparame|toca|canta|cantemos|cantar|cantando|hagamos|podes|puedes|puede|podria|podrias|deberias|regalame|mandame|enviame|mostrame|ensename|decime|sugiereme|recomiendame|recomienda|colocame|un|una|unos|unas|el|la|los|las|lista|listas|popurri|popurris|medley|canciones|cancion|cantos|canto|coro|coros|alabanza|alabanzas|himno|himnos|que|sea|sean|hablen|habla|trate|traten|sobre|de|del|en|tono|tonos|tonalidad|tonalidades|clave|claves|key|para|con|y|o|por|favor|porfa|please|tiempo|tempo|ritmo|lenta|lentas|lento|lentos|rapida|rapidas|rapido|rapidos|suave|suaves|media|medias|medio|medios|alegre|alegres|movida|movidas|do|re|mi|fa|sol|la|si|sostenido|sostenidos|bemol|bemoles|mayor|mayores|menor|menores|minor|major|slow|tranquila|tranquilas|tranquilo|tranquilos|calmada|calmados|calmado|calmadas|pausada|pausados|pausado|pausadas|medium|moderada|moderados|moderado|moderadas|normal|upbeat|viva|vivas|vivo|vivos|fiesta|jubilosa|jubilosas|jubiloso|jubilosos|energetica|energeticas|energetico|energeticos|adoracion|alabanza|worship|voy|vamos|[a-g](?:#|b)?m?)\b/g
+  // "infantil/ninos/escuela dominical" son CATEGORÍAS, no temas líricos: van a stopwords
+  const stopwords = /\b(dame|da|das|me|te|se|nos|les|mi|mis|tu|tus|su|sus|hasme|hazme|haz|hacer|crea|creame|crear|arma|armame|armar|genera|generame|generar|busca|buscame|buscar|ponme|poneme|pon|pasame|pasa|trae|traeme|quiero|necesito|pide|pideme|elige|selecciona|seleccioname|prepara|preparame|toca|canta|cantemos|cantar|cantando|hagamos|podes|puedes|puede|podria|podrias|deberias|regalame|mandame|enviame|mostrame|ensename|decime|sugiereme|recomiendame|recomienda|colocame|un|una|unos|unas|el|la|los|las|lista|listas|popurri|popurris|medley|canciones|cancion|cantos|canto|coro|coros|alabanza|alabanzas|himno|himnos|que|sea|sean|hablen|habla|trate|traten|sobre|de|del|en|tono|tonos|tonalidad|tonalidades|clave|claves|key|para|con|y|o|por|favor|porfa|please|tiempo|tempo|ritmo|lenta|lentas|lento|lentos|rapida|rapidas|rapido|rapidos|suave|suaves|media|medias|medio|medios|alegre|alegres|movida|movidas|do|re|mi|fa|sol|la|si|sostenido|sostenidos|bemol|bemoles|mayor|mayores|menor|menores|minor|major|slow|tranquila|tranquilas|tranquilo|tranquilos|calmada|calmados|calmado|calmadas|pausada|pausados|pausado|pausadas|medium|moderada|moderados|moderado|moderadas|normal|upbeat|viva|vivas|vivo|vivos|fiesta|jubilosa|jubilosas|jubiloso|jubilosos|energetica|energeticas|energetico|energeticos|adoracion|alabanza|worship|voy|vamos|infantil|infantiles|ninos|nino|nina|ninas|escuela|dominical|ebd|chicos|chiquitos|[a-g](?:#|b)?m?)\b/g
 
   const tema = p
     .replace(/\d+/g, ' ')
@@ -445,14 +667,24 @@ function procesarSugerencias(
   }
 
   if (tipo) {
-    const conTipo = resultados.filter((c: any) =>
-      normalizarTexto(c.tipo || '').includes(tipo!)
+    const conTipo = resultados.filter((c: any) => {
+      // "infantil" se detecta por marca, tag o ESTILO de la letra
+      if (tipo === 'infantil') return esCancionInfantil(c)
+
+      const tipoBD = normalizarTexto(c.tipo || '')
+      const tags: string[] = Array.isArray(c.temas)
+        ? c.temas.map((t: string) => normalizarTexto(t))
+        : []
+      return tipoBD.includes(tipo!) || tags.includes(tipo!)
+    })
+
+    const hayDatosTipo = resultados.some(
+      (c: any) => (c.tipo || '').trim() !== '' || (Array.isArray(c.temas) && c.temas.length > 0)
     )
-    const hayDatosTipo = resultados.some((c: any) => (c.tipo || '').trim() !== '')
 
     if (conTipo.length > 0) {
       resultados = conTipo
-    } else if (hayDatosTipo) {
+    } else if (hayDatosTipo && tipo !== 'infantil') {
       return NextResponse.json({
         exito: true,
         sugerencias: [],
@@ -462,7 +694,8 @@ function procesarSugerencias(
     }
   }
 
-  const sugerencias = resultados.slice(0, cantidad || 10)
+  // 🔧 15 resultados por defecto (antes 10) para no desplazar canciones relevantes
+  const sugerencias = resultados.slice(0, cantidad || 15)
 
   const sugerenciasConRazon = sugerencias.map((c: any) => ({
     ...c,
