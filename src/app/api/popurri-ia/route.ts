@@ -215,7 +215,19 @@ const PALABRAS_VACIAS_TEMA = new Set([
 const VOCABULARIO_INFANTIL = [
   'animalitos', 'arbolitos', 'jesusito', 'mamita', 'papito', 'manitos',
   'ojitos', 'corazoncito', 'amiguito', 'amiguitos', 'ninito', 'pequenito',
-  'cabecita', 'deditos', 'piececitos', 'sonrisita'
+  'cabecita', 'deditos', 'piececitos', 'sonrisita','dominical', 'escuela dominical',
+   'ebd', 'ninos', 'infantil', 'cancioncita', 'enseñar', 'aprendizaje', 'aprender', 
+   'juguetes', 'jugar', 'diversion', 'divertido', 'divertida', 'cantar', 'cantando',
+    'cancioncita', 'cancioncito','pajaritos', 'pajarito', 'pajaritos', 'arcoiris', 'colores', 
+    'dibujos', 'dibujar','poderoso', 'poderosa', 'poder', 'valiente', 'valientes', 'valentia',
+     'valentia','trenecito', 'barquito', 'barquitos','biblia', 'biblico', 'biblica', 'biblicos', 
+     'biblicas', 'biblicamente', 'yoyo', 'pelota', 'pelotas', 'pelotita', 'pelotitas', 'globito', 
+     'globitos','leon','noe', 'abrham', 'moises', 'jonas', 'daniel', 'david', 'goliat', 'samuel', 'jesus',
+      'cristo','telefono','amigo','arca','mono','perrito','gatito','conejo','pajarito','pajaritos',
+      'caballito','caballitos','manitos','dedito','deditos','piecito','piececitos','ojito','ojitos',
+      'narizita','narizitas','amen','aleluya'
+
+
 ]
 
 const HISTORIAS_BIBLICAS_INFANTILES: [RegExp, number][] = [
