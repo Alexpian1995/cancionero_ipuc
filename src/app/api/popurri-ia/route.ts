@@ -75,7 +75,6 @@ const GRUPOS_TEMA: GrupoTema[] = [
       'bautismo', 'bautizar', 'bautizado', 'aguas', 'en el nombre de Jesus',
       'recibir a Cristo', 'aceptar a Cristo', 'entregar vida', 'rendir vida',
       'llamado al altar', 'pase al frente', 'decision',
-      // 🆕 Frases típicas de llamado al altar / invitación
       'oye', 'escucha', 'ven a el', 'ven hoy', 'acercate a dios',
       'entregas tu vida', 'entregale tu vida', 'dale tu vida', 'rendir tu vida',
       'el te ama', 'el te quiere', 'te quiere ayudar', 'quiere cambiar tu vida',
@@ -185,7 +184,6 @@ const GRUPOS_TEMA: GrupoTema[] = [
   { claves: ['lluvia', 'bendicion', 'bendecir', 'abundancia'], sinonimos: [], raices: ['bend'] },
 ]
 
-// Índice inverso para búsqueda rápida
 const INDICE_GRUPOS = new Map<string, GrupoTema[]>()
 for (const grupo of GRUPOS_TEMA) {
   for (const palabra of [...grupo.claves, ...grupo.sinonimos]) {
@@ -213,23 +211,20 @@ const PALABRAS_VACIAS_TEMA = new Set([
 // ═══════════════════════════════════════════════════════════════
 
 const VOCABULARIO_INFANTIL = [
-  'animalitos', 'arbolitos', 'jesusito', 'mamita', 'papito', 'manitos',
+  'animalitos', 'arbolitos',  'mamita', 'papito', 'manitos',
   'ojitos', 'corazoncito', 'amiguito', 'amiguitos', 'ninito', 'pequenito',
   'cabecita', 'deditos', 'piececitos', 'sonrisita','dominical', 'escuela dominical',
    'ebd', 'ninos', 'infantil', 'cancioncita', 'enseñar', 'aprendizaje', 'aprender', 
    'juguetes', 'jugar', 'diversion', 'divertido', 'divertida', 'cantar', 'cantando',
-    'cancioncita', 'cancioncito','pajaritos', 'pajarito', 'pajaritos', 'arcoiris', 'colores', 
-    'dibujos', 'dibujar','poderoso', 'valiente', 'valientes', 'valentia',
+    'cancioncita','pajaritos', 'pajarito', 'pajaritos', 'arcoiris', 'colores', 
+    'dibujos', 'dibujar', 'valiente', 'valientes', 'valentia',
      'valentia','trenecito', 'barquito', 'barquitos','biblia', 'biblico', 'biblica', 'biblicos', 
      'biblicas', 'biblicamente', 'yoyo', 'pelota', 'pelotas', 'pelotita', 'pelotitas', 'globito', 
-     'globitos','leon','noe', 'abrham', 'moises', 'jonas', 'daniel', 'david', 'goliat', 'samuel',
-      'telefono','amigo','arca','mono','perrito','gatito','conejo','pajarito','pajaritos',
+     'globitos','noe', 'abrham', 'moises', 'jonas', 'daniel', 'david', 'goliat', 'samuel',
+      'telefono','arca','mono','perrito','gatito','conejo','pajarito','pajaritos',
       'caballito','caballitos','manitos','dedito','deditos','piecito','piececitos','ojito','ojitos',
-      'narizita','narizitas','amen','mar','peces','pecesitos','pecesito','cielito','cielitos','solcito',
-      'solcitos','lunitas','lunita','trenecito','trenecitos','barquito','barquitos','globito','globitos'
+      'narizita','narizitas','mar','peces','pecesitos','pecesito','cielito','cielitos'
       
-
-
 ]
 
 const HISTORIAS_BIBLICAS_INFANTILES: [RegExp, number][] = [
@@ -246,28 +241,23 @@ function detectarEstiloInfantil(letra: string): number {
 
   let score = 0
 
-  // 1) Diminutivos: la señal más fuerte (-ito, -ita, -itos, -itas)
   const diminutivos = texto.match(/\b[a-z]+(?:ito|ita|itos|itas)\b/g) || []
   const diminutivosUnicos = new Set(diminutivos)
   score += Math.min(diminutivosUnicos.size, 4) * 1.5
 
-  // 2) Vocabulario típico de canciones infantiles cristianas
   for (const palabra of VOCABULARIO_INFANTIL) {
     if (texto.includes(palabra)) score += 2
   }
 
-  // 3) Historias bíblicas clásicas de escuela dominical
   for (const [patron, puntos] of HISTORIAS_BIBLICAS_INFANTILES) {
     if (patron.test(texto)) score += puntos
   }
 
-  // 4) Frases didácticas simples de niños
   if (/\bpor fe yo se\b|\byo se que mi dios\b|\bjesus me ama\b|\bdios me ama\b/.test(texto)) score += 2
 
   return score
 }
 
-// Una canción es infantil si: está marcada, tiene tag, o el estilo lo delata
 function esCancionInfantil(cancion: any): boolean {
   const tipoBD = normalizarTexto(cancion.tipo || '')
   const tags: string[] = Array.isArray(cancion.temas)
@@ -305,7 +295,6 @@ function puntuarTema(cancion: any, palabrasTema: string[]): number {
 
       const { exactas, raices } = variantesDeGrupo(grupo)
 
-      // Palabras exactas (título +5, letra +1 c/u máx 5, tags +10)
       for (const v of exactas) {
         const re = new RegExp(`\\b${escapeRegex(v)}\\b`, 'g')
         if (tags.includes(v)) score += 10
@@ -315,7 +304,6 @@ function puntuarTema(cancion: any, palabrasTema: string[]): number {
         if (l) score += Math.min(l.length, 5)
       }
 
-      // 🔧 Raíces con MÁS PESO: capturan familias completas (salv→salvacion/salvar/salvo)
       for (const raiz of raices) {
         const re = new RegExp(`\\b${escapeRegex(raiz)}[a-z]*\\b`, 'g')
         const t = titulo.match(re)
@@ -465,20 +453,20 @@ function extraerModo(prompt: string): 'mayor' | 'menor' | null {
   return null
 }
 
+// 🔧 FIX 1: Sin adoracion/alabanza (son temas, no tempos)
 function extraerTempo(prompt: string): string | null {
   const p = normalizarTexto(prompt)
-  if (/\b(lenta|lentas|lento|lentos|suave|suaves|slow|tranquila|tranquilas|tranquilo|tranquilos|calmada|calmadas|calmado|calmados|pausada|pausadas|pausado|pausados|adoracion)\b/.test(p)) return 'lento'
+  if (/\b(lenta|lentas|lento|lentos|suave|suaves|slow|tranquila|tranquilas|tranquilo|tranquilos|calmada|calmadas|calmado|calmados|pausada|pausadas|pausado|pausados)\b/.test(p)) return 'lento'
   if (/\b(media|medias|medio|medios|medium|moderada|moderadas|moderado|moderados|normal)\b/.test(p)) return 'medio'
-  if (/\b(rapida|rapidas|rapido|rapidos|alegre|alegres|movida|movidas|movido|movidos|upbeat|viva|vivas|vivo|vivos|fiesta|jubilosa|jubilosas|jubiloso|jubilosos|energetica|energeticas|energetico|energeticos|alabanza)\b/.test(p)) return 'rapido'
+  if (/\b(rapida|rapidas|rapido|rapidos|alegre|alegres|movida|movidas|movido|movidos|upbeat|viva|vivas|vivo|vivos|fiesta|jubilosa|jubilosas|jubiloso|jubilosos|energetica|energeticas|energetico|energeticos)\b/.test(p)) return 'rapido'
   return null
 }
 
+// 🔧 FIX 2: Solo tipos musicales reales (no adoracion/alabanza)
 function extraerTipo(prompt: string): string | null {
   const p = normalizarTexto(prompt)
   if (/\b(coros?|corito|coritos)\b/.test(p)) return 'coro'
   if (/\b(himnos?|himnario)\b/.test(p)) return 'himno'
-  if (/\badoracion\b/.test(p)) return 'adoracion'
-  if (/\b(alabanzas?)\b/.test(p)) return 'alabanza'
   if (/\b(infantil|infantiles|ninos|de ninos|escuela dominical|ebd)\b/.test(p)) return 'infantil'
   return null
 }
@@ -496,10 +484,10 @@ function extraerCantidad(prompt: string): number | null {
   return null
 }
 
+// 🔧 FIX 3: Stopwords sin adoracion|alabanza (ahora pasan como tema)
 function extraerTema(prompt: string): string | null {
   const p = normalizarTexto(prompt)
-  // "infantil/ninos/escuela dominical" son CATEGORÍAS, no temas líricos: van a stopwords
-  const stopwords = /\b(dame|da|das|me|te|se|nos|les|mi|mis|tu|tus|su|sus|hasme|hazme|haz|hacer|crea|creame|crear|arma|armame|armar|genera|generame|generar|busca|buscame|buscar|ponme|poneme|pon|pasame|pasa|trae|traeme|quiero|necesito|pide|pideme|elige|selecciona|seleccioname|prepara|preparame|toca|canta|cantemos|cantar|cantando|hagamos|podes|puedes|puede|podria|podrias|deberias|regalame|mandame|enviame|mostrame|ensename|decime|sugiereme|recomiendame|recomienda|colocame|un|una|unos|unas|el|la|los|las|lista|listas|popurri|popurris|medley|canciones|cancion|cantos|canto|coro|coros|alabanza|alabanzas|himno|himnos|que|sea|sean|hablen|habla|trate|traten|sobre|de|del|en|tono|tonos|tonalidad|tonalidades|clave|claves|key|para|con|y|o|por|favor|porfa|please|tiempo|tempo|ritmo|lenta|lentas|lento|lentos|rapida|rapidas|rapido|rapidos|suave|suaves|media|medias|medio|medios|alegre|alegres|movida|movidas|do|re|mi|fa|sol|la|si|sostenido|sostenidos|bemol|bemoles|mayor|mayores|menor|menores|minor|major|slow|tranquila|tranquilas|tranquilo|tranquilos|calmada|calmados|calmado|calmadas|pausada|pausados|pausado|pausadas|medium|moderada|moderados|moderado|moderadas|normal|upbeat|viva|vivas|vivo|vivos|fiesta|jubilosa|jubilosas|jubiloso|jubilosos|energetica|energeticas|energetico|energeticos|adoracion|alabanza|worship|voy|vamos|infantil|infantiles|ninos|nino|nina|ninas|escuela|dominical|ebd|chicos|chiquitos|[a-g](?:#|b)?m?)\b/g
+  const stopwords = /\b(dame|da|das|me|te|se|nos|les|mi|mis|tu|tus|su|sus|hasme|hazme|haz|hacer|crea|creame|crear|arma|armame|armar|genera|generame|generar|busca|buscame|buscar|ponme|poneme|pon|pasame|pasa|trae|traeme|quiero|necesito|pide|pideme|elige|selecciona|seleccioname|prepara|preparame|toca|canta|cantemos|cantar|cantando|hagamos|podes|puedes|puede|podria|podrias|deberias|regalame|mandame|enviame|mostrame|ensename|decime|sugiereme|recomiendame|recomienda|colocame|un|una|unos|unas|el|la|los|las|lista|listas|popurri|popurris|medley|canciones|cancion|cantos|canto|coro|coros|alabanza|alabanzas|himno|himnos|que|sea|sean|hablen|habla|trate|traten|sobre|de|del|en|tono|tonos|tonalidad|tonalidades|clave|claves|key|para|con|y|o|por|favor|porfa|please|tiempo|tempo|ritmo|lenta|lentas|lento|lentos|rapida|rapidas|rapido|rapidos|suave|suaves|media|medias|medio|medios|alegre|alegres|movida|movidas|do|re|mi|fa|sol|la|si|sostenido|sostenidos|bemol|bemoles|mayor|mayores|menor|menores|minor|major|slow|tranquila|tranquilas|tranquilo|tranquilos|calmada|calmados|calmado|calmadas|pausada|pausados|pausado|pausadas|medium|moderada|moderados|moderado|moderadas|normal|upbeat|viva|vivas|vivo|vivos|fiesta|jubilosa|jubilosas|jubiloso|jubilosos|energetica|energeticas|energetico|energeticos|worship|voy|vamos|infantil|infantiles|ninos|nino|nina|ninas|escuela|dominical|ebd|chicos|chiquitos|[a-g](?:#|b)?m?)\b/g
 
   const tema = p
     .replace(/\d+/g, ' ')
@@ -682,7 +670,6 @@ function procesarSugerencias(
 
   if (tipo) {
     const conTipo = resultados.filter((c: any) => {
-      // "infantil" se detecta por marca, tag o ESTILO de la letra
       if (tipo === 'infantil') return esCancionInfantil(c)
 
       const tipoBD = normalizarTexto(c.tipo || '')
@@ -708,7 +695,6 @@ function procesarSugerencias(
     }
   }
 
-  // 🔧 15 resultados por defecto (antes 10) para no desplazar canciones relevantes
   const sugerencias = resultados.slice(0, cantidad || 15)
 
   const sugerenciasConRazon = sugerencias.map((c: any) => ({
