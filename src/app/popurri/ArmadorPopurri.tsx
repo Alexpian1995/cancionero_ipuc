@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 import {
   PlusIcon,
   TrashIcon,
@@ -17,11 +19,19 @@ import {
   UserIcon,
   CheckIcon,
   FolderIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  LockClosedIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 
 import PopurriDetalleView from './PopurriDetalleView'
-import { guardarOActualizarPopurri, obtenerEstadoSuscripcion, obtenerBibliotecaPopurris } from '@/actions/iglesia'
+import {
+  guardarOActualizarPopurri,
+  obtenerEstadoSuscripcion,
+  obtenerBibliotecaPopurris,
+  eliminarPopurri,
+} from '@/actions/iglesia'
 
 type Cancion = {
   id: string
@@ -44,6 +54,7 @@ type Lider = {
 }
 
 const TONALIDADES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B', 'Cm', 'Dm', 'Em', 'Fm', 'Gm', 'Am', 'Bbm']
+const POR_PAGINA = 10
 
 const FAMILIAS_ARMONICAS: Record<string, string[]> = {
   'C': ['C', 'Am', 'F', 'G', 'Dm'],
@@ -59,10 +70,6 @@ const FAMILIAS_ARMONICAS: Record<string, string[]> = {
   'Bb': ['Bb', 'Gm', 'Eb', 'F'],
   'B': ['B', 'G#m', 'E', 'F#'],
 }
-
-// ═══════════════════════════════════════════════════════════════
-// TRANSPOSICIÓN (para que el Modo En Vivo refleje el tono elegido)
-// ═══════════════════════════════════════════════════════════════
 
 const SOSTENIDOS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const BEMOLES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
@@ -114,7 +121,6 @@ function esLineaDeAcordes(linea: string): boolean {
   return acordes.length > 0 && acordes.length / palabras.length >= 0.8
 }
 
-// Transpone SOLO las líneas de acordes, deja la letra intacta
 function transponerLetraCompleta(letra: string, semitonos: number): string {
   if (!semitonos || !letra) return letra
   return letra
@@ -145,6 +151,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   const [vistaBiblioteca, setVistaBiblioteca] = useState(false)
   const [popurrisGuardados, setPopurrisGuardados] = useState<any[]>([])
   const [cargandoBiblioteca, setCargandoBiblioteca] = useState(false)
+  const [eliminandoPopurri, setEliminandoPopurri] = useState<string | null>(null)
 
   const [modoFiltroArmonico, setModoFiltroArmonico] = useState(false)
   const [filtroTono, setFiltroTono] = useState('D')
@@ -154,6 +161,20 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   const [promptBusqueda, setPromptBusqueda] = useState('')
   const [cargando, setCargando] = useState(false)
   const [explicacion, setExplicacion] = useState('')
+
+  const [autenticado, setAutenticado] = useState<boolean | null>(null)
+  const [paginaActual, setPaginaActual] = useState(1)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setAutenticado(!!data.user)
+    })
+  }, [])
+
+  useEffect(() => {
+    setPaginaActual(1)
+  }, [busqueda, filtroTono, filtroTempo, filtroTipo, modoFiltroArmonico, seleccionadas.length])
 
   const normalizar = (str?: string | null) =>
     str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""
@@ -183,10 +204,10 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   const seleccionarPopurri = (popurriResumen: any) => {
     setPopurriIdActual(popurriResumen.id)
     setNombrePopurri(popurriResumen.titulo || 'Popurrí sin título')
-    setLiderId(popurriResumen.liderId || '')
-    setNombreLiderManual(popurriResumen.nombreLider || '')
+    setLiderId(popurriResumen.lider_id || popurriResumen.liderId || '')
+    setNombreLiderManual(popurriResumen.nombre_lider_manual || popurriResumen.nombreLider || '')
 
-    const cancionesCargadas = (popurriResumen.canciones || []).map((item: any) => {
+    const cancionesCargadas = (popurriResumen.canciones || popurriResumen.popurri_canciones || []).map((item: any) => {
       const infoCancion = item.canciones || {}
       const idCancion = item.cancion_id || item.id || infoCancion.id
       const delCatalogo = cancionesDisponibles.find((c) => c.id === idCancion)
@@ -203,6 +224,26 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
 
     setSeleccionadas(cancionesCargadas)
     setVistaBiblioteca(false)
+  }
+
+  const handleEliminarPopurri = async (e: React.MouseEvent, id: string, titulo: string) => {
+    e.stopPropagation()
+    if (!confirm(`¿Eliminar el popurrí "${titulo}"? Esta acción no se puede deshacer.`)) return
+
+    setEliminandoPopurri(id)
+    const res = await eliminarPopurri(id)
+    setEliminandoPopurri(null)
+
+    if (res.exito) {
+      setPopurrisGuardados((prev) => prev.filter((p) => p.id !== id))
+      if (popurriIdActual === id) {
+        setPopurriIdActual(undefined)
+        setNombrePopurri('Nuevo Popurrí / Medley')
+        setSeleccionadas([])
+      }
+    } else {
+      alert('Error al eliminar: ' + (res.error || 'desconocido'))
+    }
   }
 
   const obtenerCancionesFiltradas = () => {
@@ -247,6 +288,12 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
 
   const { resultados: cancionesFiltradas, esFallback } = obtenerCancionesFiltradas()
 
+  const totalPaginas = Math.max(1, Math.ceil(cancionesFiltradas.length / POR_PAGINA))
+  const cancionesPagina = useMemo(() => {
+    const inicio = (paginaActual - 1) * POR_PAGINA
+    return cancionesFiltradas.slice(inicio, inicio + POR_PAGINA)
+  }, [cancionesFiltradas, paginaActual])
+
   const consultarSugerencias = async () => {
     if (!promptBusqueda.trim()) return
     setCargando(true)
@@ -261,6 +308,12 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
           prompt: promptBusqueda,
         })
       })
+
+      if (res.status === 401) {
+        setAutenticado(false)
+        setExplicacion('Iniciá sesión para usar el sugeridor de canciones.')
+        return
+      }
 
       const data = await res.json()
 
@@ -305,6 +358,11 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
           cancionDestino: actual.titulo
         })
       })
+
+      if (res.status === 401) {
+        alert('Iniciá sesión para usar las transiciones automáticas.')
+        return
+      }
 
       const data = await res.json()
       if (data.exito && data.transicion) {
@@ -460,9 +518,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     alert('¡Esquema de popurrí copiado al portapapeles! 🎉')
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // MODO EN VIVO: la letra viaja YA TRANSPUESTA al tono elegido
-  // ═══════════════════════════════════════════════════════════════
   if (modoEnVivo) {
     const popurriAdaptado = seleccionadas.map((item) => {
       const tonoOrig = item.tonalidad || 'C'
@@ -522,15 +577,29 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                   onClick={() => seleccionarPopurri(item)}
                   className="p-4 rounded-xl border border-slate-200 hover:border-[#1B5FA8] hover:shadow-md cursor-pointer transition-all bg-slate-50 hover:bg-white space-y-2"
                 >
-                  <h4 className="font-bold text-slate-800 text-sm">{item.titulo}</h4>
-                  {item.nombreLider && (
-                    <p className="text-[11px] text-slate-500">👤 Líder: {item.nombreLider}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-bold text-slate-800 text-sm">{item.titulo}</h4>
+                    <button
+                      onClick={(e) => handleEliminarPopurri(e, item.id, item.titulo)}
+                      disabled={eliminandoPopurri === item.id}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 shrink-0"
+                      title="Eliminar popurrí"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {(item.nombre_lider_manual || item.nombreLider) && (
+                    <p className="text-[11px] text-slate-500">👤 Líder: {item.nombre_lider_manual || item.nombreLider}</p>
                   )}
+
                   <div className="flex items-center justify-between pt-2">
                     <span className="inline-block text-[10px] font-bold bg-[#1B5FA8]/10 text-[#1B5FA8] px-2.5 py-0.5 rounded-md">
-                      {item.canciones?.length || 0} canciones
+                      {(item.canciones || item.popurri_canciones || []).length || 0} canciones
                     </span>
-                    <span className="text-[11px] text-[#1B5FA8] font-bold">Cargar ➔</span>
+                    <span className="text-[11px] text-[#1B5FA8] font-bold">
+                      {eliminandoPopurri === item.id ? 'Eliminando...' : 'Cargar ➔'}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -540,78 +609,100 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-5 space-y-4">
-            {/* Sugeridor IA */}
-            <div className="bg-gradient-to-br from-[#0F2C4C] to-[#1B5FA8] p-4 rounded-2xl text-white space-y-3 shadow-md">
-              <div className="flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-[#D9A544]" />
+            {autenticado === false ? (
+              <div className="bg-gradient-to-br from-[#0F2C4C] to-[#1B5FA8] p-6 rounded-2xl text-white space-y-3 shadow-md text-center">
+                <LockClosedIcon className="w-9 h-9 mx-auto text-[#D9A544]" />
                 <h3 className="font-bold text-sm">Asistente de IA para Popurrís</h3>
-              </div>
-
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={promptBusqueda}
-                  onChange={(e) => setPromptBusqueda(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && consultarSugerencias()}
-                  placeholder="Ej: canciones sobre fidelidad de Dios"
-                  className="w-full text-xs text-white placeholder:text-slate-300 bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#D9A544] font-medium"
-                />
-
-                <button
-                  onClick={consultarSugerencias}
-                  disabled={cargando || !promptBusqueda.trim()}
-                  className="w-full bg-[#D9A544] text-[#0F2C4C] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#e8b95f] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                <p className="text-[11px] text-slate-200 leading-relaxed">
+                  Por respeto a los derechos de autor, el sugeridor inteligente y las
+                  letras con acordes están disponibles solo para directores y músicos
+                  registrados de la iglesia.
+                </p>
+                <Link
+                  href="/admin/login"
+                  className="inline-block px-5 py-2.5 bg-[#D9A544] text-[#0F2C4C] font-bold text-xs rounded-xl hover:bg-[#e8b95f] transition-colors"
                 >
-                  {cargando ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Analizando canciones...
-                    </span>
-                  ) : (
-                    '✨ Sugerir canciones'
-                  )}
-                </button>
+                  Iniciar sesión
+                </Link>
               </div>
-
-              {explicacion && (
-                <div className="text-[11px] text-slate-100 bg-white/10 p-3 rounded-xl border border-white/10 space-y-2">
-                  <p className="italic flex items-start gap-2">
-                    <InformationCircleIcon className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>{explicacion}</span>
-                  </p>
-
-                  {seleccionadas.length > 0 && seleccionadas.some(s => s.razon) && (
-                    <ul className="space-y-1.5 pl-6 pt-1 border-t border-white/10">
-                      {seleccionadas.slice(0, 6).map((c) => (
-                        <li key={c.id} className="flex items-start gap-1.5">
-                          <span className="text-[#D9A544] font-bold">•</span>
-                          <div className="min-w-0">
-                            <span className="font-semibold text-white">"{c.titulo}"</span>
-                            <span className="text-slate-300"> — {c.libro || 'Cancionero IPUC'}</span>
-                            {c.razon && (
-                              <p className="text-slate-300 italic text-[10px]">{c.razon}</p>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                      {seleccionadas.length > 6 && (
-                        <li className="text-[10px] text-slate-400 italic">
-                          +{seleccionadas.length - 6} más en el armador
-                        </li>
-                      )}
-                    </ul>
-                  )}
+            ) : (
+              <div className="bg-gradient-to-br from-[#0F2C4C] to-[#1B5FA8] p-4 rounded-2xl text-white space-y-3 shadow-md">
+                <div className="flex items-center gap-2">
+                  <SparklesIcon className="w-5 h-5 text-[#D9A544]" />
+                  <h3 className="font-bold text-sm">Asistente de IA para Popurrís</h3>
                 </div>
-              )}
-            </div>
 
-            {/* Catálogo */}
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={promptBusqueda}
+                    onChange={(e) => setPromptBusqueda(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && consultarSugerencias()}
+                    placeholder="Ej: canciones sobre fidelidad de Dios"
+                    className="w-full text-xs text-white placeholder:text-slate-300 bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#D9A544] font-medium"
+                  />
+
+                  <button
+                    onClick={consultarSugerencias}
+                    disabled={cargando || !promptBusqueda.trim()}
+                    className="w-full bg-[#D9A544] text-[#0F2C4C] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#e8b95f] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {cargando ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Analizando canciones...
+                      </span>
+                    ) : (
+                      '✨ Sugerir canciones'
+                    )}
+                  </button>
+                </div>
+
+                {explicacion && (
+                  <div className="text-[11px] text-slate-100 bg-white/10 p-3 rounded-xl border border-white/10 space-y-2">
+                    <p className="italic flex items-start gap-2">
+                      <InformationCircleIcon className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{explicacion}</span>
+                    </p>
+
+                    {seleccionadas.length > 0 && seleccionadas.some(s => s.razon) && (
+                      <ul className="space-y-1.5 pl-6 pt-1 border-t border-white/10">
+                        {seleccionadas.slice(0, 6).map((c) => (
+                          <li key={c.id} className="flex items-start gap-1.5">
+                            <span className="text-[#D9A544] font-bold">•</span>
+                            <div className="min-w-0">
+                              <span className="font-semibold text-white">"{c.titulo}"</span>
+                              <span className="text-slate-300"> — {c.libro || 'Cancionero IPUC'}</span>
+                              {c.razon && (
+                                <p className="text-slate-300 italic text-[10px]">{c.razon}</p>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                        {seleccionadas.length > 6 && (
+                          <li className="text-[10px] text-slate-400 italic">
+                            +{seleccionadas.length - 6} más en el armador
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h2 className="font-bold font-display text-base text-[#0F2C4C]">Catálogo de Alabanzas</h2>
+                <div>
+                  <h2 className="font-bold font-display text-base text-[#0F2C4C]">Catálogo de Alabanzas</h2>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {cancionesFiltradas.length} {cancionesFiltradas.length === 1 ? 'canción' : 'canciones'}
+                    {totalPaginas > 1 && ` · Página ${paginaActual} de ${totalPaginas}`}
+                  </p>
+                </div>
                 <button
                   onClick={() => setModoFiltroArmonico(!modoFiltroArmonico)}
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
@@ -688,11 +779,11 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                 </div>
               )}
 
-              <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1">
-                {cancionesFiltradas.length === 0 ? (
+              <div className="space-y-2">
+                {cancionesPagina.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-6">No hay canciones para este filtro</p>
                 ) : (
-                  cancionesFiltradas.map((c) => (
+                  cancionesPagina.map((c) => (
                     <div
                       key={c.id}
                       onClick={() => agregarCancion(c)}
@@ -709,6 +800,57 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                   ))
                 )}
               </div>
+
+              {totalPaginas > 1 && (
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+                    disabled={paginaActual === 1}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                    Anterior
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPaginas) }).map((_, i) => {
+                      let pageNum: number
+                      if (totalPaginas <= 5) {
+                        pageNum = i + 1
+                      } else if (paginaActual <= 3) {
+                        pageNum = i + 1
+                      } else if (paginaActual >= totalPaginas - 2) {
+                        pageNum = totalPaginas - 4 + i
+                      } else {
+                        pageNum = paginaActual - 2 + i
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setPaginaActual(pageNum)}
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
+                            paginaActual === pageNum
+                              ? 'bg-[#1B5FA8] text-white'
+                              : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
+                    disabled={paginaActual === totalPaginas}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Siguiente
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

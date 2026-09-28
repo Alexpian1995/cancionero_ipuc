@@ -453,7 +453,6 @@ function extraerModo(prompt: string): 'mayor' | 'menor' | null {
   return null
 }
 
-// 🔧 FIX 1: Sin adoracion/alabanza (son temas, no tempos)
 function extraerTempo(prompt: string): string | null {
   const p = normalizarTexto(prompt)
   if (/\b(lenta|lentas|lento|lentos|suave|suaves|slow|tranquila|tranquilas|tranquilo|tranquilos|calmada|calmadas|calmado|calmados|pausada|pausadas|pausado|pausados)\b/.test(p)) return 'lento'
@@ -462,7 +461,6 @@ function extraerTempo(prompt: string): string | null {
   return null
 }
 
-// 🔧 FIX 2: Solo tipos musicales reales (no adoracion/alabanza)
 function extraerTipo(prompt: string): string | null {
   const p = normalizarTexto(prompt)
   if (/\b(coros?|corito|coritos)\b/.test(p)) return 'coro'
@@ -484,7 +482,6 @@ function extraerCantidad(prompt: string): number | null {
   return null
 }
 
-// 🔧 FIX 3: Stopwords sin adoracion|alabanza (ahora pasan como tema)
 function extraerTema(prompt: string): string | null {
   const p = normalizarTexto(prompt)
   const stopwords = /\b(dame|da|das|me|te|se|nos|les|mi|mis|tu|tus|su|sus|hasme|hazme|haz|hacer|crea|creame|crear|arma|armame|armar|genera|generame|generar|busca|buscame|buscar|ponme|poneme|pon|pasame|pasa|trae|traeme|quiero|necesito|pide|pideme|elige|selecciona|seleccioname|prepara|preparame|toca|canta|cantemos|cantar|cantando|hagamos|podes|puedes|puede|podria|podrias|deberias|regalame|mandame|enviame|mostrame|ensename|decime|sugiereme|recomiendame|recomienda|colocame|un|una|unos|unas|el|la|los|las|lista|listas|popurri|popurris|medley|canciones|cancion|cantos|canto|coro|coros|alabanza|alabanzas|himno|himnos|que|sea|sean|hablen|habla|trate|traten|sobre|de|del|en|tono|tonos|tonalidad|tonalidades|clave|claves|key|para|con|y|o|por|favor|porfa|please|tiempo|tempo|ritmo|lenta|lentas|lento|lentos|rapida|rapidas|rapido|rapidos|suave|suaves|media|medias|medio|medios|alegre|alegres|movida|movidas|do|re|mi|fa|sol|la|si|sostenido|sostenidos|bemol|bemoles|mayor|mayores|menor|menores|minor|major|slow|tranquila|tranquilas|tranquilo|tranquilos|calmada|calmados|calmado|calmadas|pausada|pausados|pausado|pausadas|medium|moderada|moderados|moderado|moderadas|normal|upbeat|viva|vivas|vivo|vivos|fiesta|jubilosa|jubilosas|jubiloso|jubilosos|energetica|energeticas|energetico|energeticos|worship|voy|vamos|infantil|infantiles|ninos|nino|nina|ninas|escuela|dominical|ebd|chicos|chiquitos|[a-g](?:#|b)?m?)\b/g
@@ -506,6 +503,16 @@ export async function POST(req: Request) {
   try {
     const { accion, prompt, tonoOrigen, tonoDestino, cancionOrigen, cancionDestino } = await req.json()
 
+    // 🔒 GUARD DE AUTENTICACIÓN: protege el sugeridor de popurrís
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { exito: false, mensaje: 'Iniciá sesión para usar el sugeridor de canciones.' },
+        { status: 401 }
+      )
+    }
+
     if (accion === 'sugerir_popurri') {
       if (!prompt || prompt.trim().length === 0) {
         return NextResponse.json({ exito: false, mensaje: 'Falta el texto de búsqueda' })
@@ -517,8 +524,6 @@ export async function POST(req: Request) {
       const tipo = extraerTipo(prompt)
       const tema = extraerTema(prompt)
       const modo = extraerModo(prompt)
-
-      const supabase = await createClient()
 
       let query = supabase
         .from('canciones')

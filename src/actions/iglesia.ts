@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache' 
 
 function generarCodigoSesion(longitud = 6): string {
   const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -268,15 +269,17 @@ export async function guardarOActualizarPopurri(datos: {
 }
 
 // 4. ELIMINAR POPURRÍ
-export async function eliminarPopurri(popurriId: string) {
+export async function eliminarPopurri(
+  popurriId: string
+): Promise<{ exito: boolean; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
-    return { exito: false, codigo: 'NO_AUTENTICADO', error: 'Debes iniciar sesión' }
+    return { exito: false, error: 'Debes iniciar sesión para eliminar popurrís.' }
   }
 
-  // Verificar propiedad antes de eliminar
+  // Verificar propiedad antes de eliminar (seguridad)
   const { data: verif } = await supabase
     .from('popurris')
     .select('id, lider_id')
@@ -285,23 +288,30 @@ export async function eliminarPopurri(popurriId: string) {
     .maybeSingle()
 
   if (!verif) {
-    return { exito: false, codigo: 'SIN_PERMISOS', error: 'No tienes permisos para eliminar este popurrí' }
+    return { exito: false, error: 'No tienes permisos para eliminar este popurrí.' }
   }
 
-  // Eliminar detalle primero
-  await supabase.from('popurri_canciones').delete().eq('popurri_id', popurriId)
-  
-  // Eliminar cabecera
-  const { error } = await supabase.from('popurris').delete().eq('id', popurriId)
+  // 1) Eliminar las canciones hijas (por si no hay ON DELETE CASCADE)
+  await supabase
+    .from('popurri_canciones')
+    .delete()
+    .eq('popurri_id', popurriId)
+
+  // 2) Eliminar el popurrí
+  const { error } = await supabase
+    .from('popurris')
+    .delete()
+    .eq('id', popurriId)
 
   if (error) {
     console.error('Error eliminando popurrí:', error)
-    return { exito: false, codigo: 'ERROR_DB', error: 'No pudimos eliminar el popurrí' }
+    return { exito: false, error: 'No pudimos eliminar el popurrí.' }
   }
-  
+
+  // Refresca la página en el servidor para que el cambio se refleje
+  revalidatePath('/popurri')
   return { exito: true }
 }
-
 // 5. ESTADO DE SUSCRIPCIÓN (CORREGIDO)
 export async function obtenerEstadoSuscripcion() {
   const supabase = await createClient()

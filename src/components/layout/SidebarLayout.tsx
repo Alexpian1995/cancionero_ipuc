@@ -62,7 +62,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      
+
       if (currentUser) {
         const { data: admin } = await supabase
           .from('administradores')
@@ -101,9 +101,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#0F2C4C] text-slate-300 flex flex-col justify-between p-4 shrink-0 border-r border-slate-800 transition-transform duration-300 ease-in-out ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
+        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#0F2C4C] text-slate-300 flex flex-col justify-between p-4 shrink-0 border-r border-slate-800 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          }`}
       >
         <div>
           <div className="flex items-center justify-between px-2 mb-8 mt-1">
@@ -140,11 +139,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center justify-between px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
-                      isActive
+                    className={`flex items-center justify-between px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${isActive
                         ? 'bg-[#D9A544] text-[#0F2C4C] font-semibold shadow-xs'
                         : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <item.icon className="h-4 w-4 shrink-0" />
@@ -173,11 +171,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
-                        isActive
+                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${isActive
                           ? 'bg-white/15 text-white font-semibold'
                           : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                      }`}
+                        }`}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.name}</span>
@@ -250,8 +247,20 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 overflow-y-auto flex flex-col justify-between">
           <main className="p-4 md:p-8">{children}</main>
 
-          <footer className="mt-auto border-t border-slate-200/80 bg-white/50 px-4 md:px-8 py-4 text-center text-xs text-slate-500">
-            <p>© {new Date().getFullYear()} Cancionero IPUC — Anderson Alzate. Todos los derechos reservados.</p>
+          <footer className="border-t border-slate-200 bg-white py-6 mt-12">
+            <div className="max-w-4xl mx-auto px-6 text-center space-y-2">
+              <p className="text-[11px] text-slate-500">
+                Las letras y acordes pertenecen a sus respectivos autores y se utilizan con autorización
+                o bajo dominio público, exclusivamente para ensayo y culto de las congregaciones.
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Si sos titular de derechos de alguna obra y deseás solicitar su retiro, escribinos a{' '}
+                <a href="mailto:derechos@cancionero-ipuc.com" className="text-[#1B5FA8] font-semibold underline">
+                  alexanderalzate53@gmail.com
+                </a>{' '}
+                y la removeremos en un plazo máximo de 48 horas.
+              </p>
+            </div>
           </footer>
         </div>
       </div>

@@ -1,12 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { ArmadorPopurri } from '@/app/popurri/ArmadorPopurri'
 
 export default async function PopurrisPage() {
   const supabase = await createClient()
 
+  // 🔒 GUARD DE AUTENTICACIÓN: solo músicos/directores registrados
+  // Si no hay sesión, redirige ANTES de consultar letras/acordes
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    redirect('/admin/login')
+  }
+
   const { data: canciones } = await supabase
     .from('canciones')
-    .select('id, titulo, libro, tonalidad, tempo, tipo, letra')
+    .select('id, titulo, libro, tonalidad, tempo, tipo, letra, temas')
     .order('titulo')
 
   const cancionesMapeadas = (canciones || []).map((c) => ({
@@ -17,6 +25,7 @@ export default async function PopurrisPage() {
     tempo: c.tempo ?? null,
     tipo: c.tipo ?? null,
     letra: c.letra ?? null,
+    temas: (c as any).temas ?? null, // ← agregado para que el sugeridor use los tags
   }))
 
   return (
