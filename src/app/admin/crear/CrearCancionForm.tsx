@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/client'
 const TONOS_MAYORES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 const TONOS_MENORES = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'Abm', 'Am', 'Bbm', 'Bm']
 
-// 🆕 Categorías temáticas (coinciden con los grupos del sugeridor)
 const CATEGORIAS_TEMATICAS = [
   { value: '', label: '— Sin categoría (opcional) —' },
   { value: 'infantil', label: '🧒 Infantil / Niños' },
@@ -15,7 +14,7 @@ const CATEGORIAS_TEMATICAS = [
   { value: 'perdon', label: '🙏 Perdón' },
   { value: 'fe', label: '✝️ Fe / Confianza' },
   { value: 'amor', label: '❤️ Amor de Dios' },
-  { value: 'gratitud', label: ' Gratitud / Gracias' },
+  { value: 'gratitud', label: '🙌 Gratitud / Gracias' },
   { value: 'adoracion', label: '🕊️ Adoración' },
   { value: 'alabanza', label: '🎵 Alabanza / Gozo' },
   { value: 'esperanza', label: '🌅 Esperanza' },
@@ -29,6 +28,15 @@ const CATEGORIAS_TEMATICAS = [
   { value: 'oracion', label: '🙇 Oración' },
 ]
 
+// ⚖️ Estados legales
+const ESTADOS_LEGALES = [
+  { value: 'pendiente', label: '⚠️ Pendiente de permiso' },
+  { value: 'dominio_publico', label: '✅ Dominio público' },
+  { value: 'permiso_escrito', label: '✅ Permiso escrito del autor' },
+  { value: 'licencia', label: '📘 Licencia (CCLI / editorial)' },
+  { value: 'no_publicar', label: '🚫 No publicar' },
+]
+
 export function CrearCancionForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -37,7 +45,9 @@ export function CrearCancionForm() {
     libro: 'Lluvias de Bendición',
     tonalidad: 'C',
     tempo: 'Medio',
-    categoria: '', // 🆕 opcional, arranca vacía
+    categoria: '',
+    estado_legal: 'pendiente',
+    nota_legal: '',
     letra: '',
   })
 
@@ -55,7 +65,6 @@ export function CrearCancionForm() {
 
     const supabase = createClient()
 
-    // Guardamos la categoría como tag en `temas` (array de 1) → el sugeridor le da +10
     const { categoria, ...resto } = formData
     const datosAGuardar = {
       ...resto,
@@ -152,10 +161,9 @@ export function CrearCancionForm() {
           </select>
         </div>
 
-        {/* 🆕 SELECT DE CATEGORÍA TEMÁTICA (OPCIONAL) */}
         <div className="sm:col-span-2">
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Categoría temática <span className="text-slate-400 font-normal">(opcional — ayuda al sugeridor de popurrís)</span>
+            Categoría temática <span className="text-slate-400 font-normal">(opcional)</span>
           </label>
           <select
             name="categoria"
@@ -167,9 +175,37 @@ export function CrearCancionForm() {
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
-          <p className="text-[10px] text-slate-400 mt-1">
-            Si elegís una categoría, el sugeridor priorizará esta canción cuando busques ese tema. Si la dejás vacía, intentará detectarla por la letra.
-          </p>
+        </div>
+
+        {/* ⚖️ ESTADO LEGAL */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Estado legal <span className="text-slate-400 font-normal">(copyright)</span>
+          </label>
+          <select
+            name="estado_legal"
+            value={formData.estado_legal}
+            onChange={handleChange}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]"
+          >
+            {ESTADOS_LEGALES.map((e) => (
+              <option key={e.value} value={e.value}>{e.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Nota / respaldo legal <span className="text-slate-400 font-normal">(opcional)</span>
+          </label>
+          <input
+            type="text"
+            name="nota_legal"
+            value={formData.nota_legal}
+            onChange={handleChange}
+            placeholder="Ej: email del autor 15/03/2026, Drive/permisos/"
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]"
+          />
         </div>
       </div>
 

@@ -12,16 +12,16 @@ interface Cancion {
   tonalidad: string
   tempo: string
   letra: string
-  temas?: string[] | null // 🆕 para leer la categoría guardada
+  temas?: string[] | null
+  estado_legal?: string | null
+  nota_legal?: string | null
 }
 
-// ✅ Mismos valores que usa el formulario de CREAR (y que consultan las páginas de sección)
 const LIBROS = ['Lluvias de Bendición', 'Manantial de Inspiración', 'Coros y Adoración']
 
 const TONOS_MAYORES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B']
 const TONOS_MENORES = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm']
 
-// 🆕 Categorías temáticas (coinciden con los grupos del sugeridor)
 const CATEGORIAS_TEMATICAS = [
   { value: '', label: '— Sin categoría (opcional) —' },
   { value: 'infantil', label: '🧒 Infantil / Niños' },
@@ -43,7 +43,14 @@ const CATEGORIAS_TEMATICAS = [
   { value: 'oracion', label: '🙇 Oración' },
 ]
 
-// Convierte valores viejos/inconsistentes de la BD al nombre canónico (ignora tildes)
+const ESTADOS_LEGALES = [
+  { value: 'pendiente', label: '⚠️ Pendiente de permiso' },
+  { value: 'dominio_publico', label: '✅ Dominio público' },
+  { value: 'permiso_escrito', label: '✅ Permiso escrito del autor' },
+  { value: 'licencia', label: '📘 Licencia (CCLI / editorial)' },
+  { value: 'no_publicar', label: '🚫 No publicar' },
+]
+
 function normalizarLibro(libro?: string): string {
   const sinTildes = (s: string) =>
     s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
@@ -69,7 +76,9 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
     libro: normalizarLibro(cancion.libro),
     tonalidad: cancion.tonalidad || 'C',
     tempo: cancion.tempo || 'Medio',
-    categoria: Array.isArray(cancion.temas) && cancion.temas.length > 0 ? cancion.temas[0] : '', // 🆕
+    categoria: Array.isArray(cancion.temas) && cancion.temas.length > 0 ? cancion.temas[0] : '',
+    estado_legal: cancion.estado_legal || 'pendiente',
+    nota_legal: cancion.nota_legal || '',
     letra: cancion.letra || '',
   })
 
@@ -87,7 +96,6 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
 
     const supabase = createClient()
 
-    // Separamos la categoría del resto y la guardamos como array en `temas`
     const { categoria, ...resto } = formData
     const datosAGuardar = {
       ...resto,
@@ -181,10 +189,9 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
           </select>
         </div>
 
-        {/* 🆕 SELECT DE CATEGORÍA TEMÁTICA (OPCIONAL) */}
         <div className="sm:col-span-2">
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Categoría temática <span className="text-slate-400 font-normal">(opcional — ayuda al sugeridor de popurrís)</span>
+            Categoría temática <span className="text-slate-400 font-normal">(opcional)</span>
           </label>
           <select
             name="categoria"
@@ -196,9 +203,37 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
-          <p className="text-[10px] text-slate-400 mt-1">
-            Si elegís una categoría, el sugeridor priorizará esta canción cuando busques ese tema. Si la dejás vacía, intentará detectarla por la letra.
-          </p>
+        </div>
+
+        {/* ⚖️ ESTADO LEGAL */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Estado legal <span className="text-slate-400 font-normal">(copyright)</span>
+          </label>
+          <select
+            name="estado_legal"
+            value={formData.estado_legal}
+            onChange={handleChange}
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]"
+          >
+            {ESTADOS_LEGALES.map((e) => (
+              <option key={e.value} value={e.value}>{e.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Nota / respaldo legal <span className="text-slate-400 font-normal">(opcional)</span>
+          </label>
+          <input
+            type="text"
+            name="nota_legal"
+            value={formData.nota_legal}
+            onChange={handleChange}
+            placeholder="Ej: email del autor 15/03/2026, Drive/permisos/"
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]"
+          />
         </div>
       </div>
 

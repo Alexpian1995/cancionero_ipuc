@@ -2,12 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+const ADMIN_EMAILS = ['alexanderalzate53@gmail.com']
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
 
-  // 1. Inicializar cliente de Supabase
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -29,27 +30,36 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 2. Obtener el usuario autenticado actual
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
   const isLoginPage = pathname === '/admin/login'
+  // 🆕 Rutas públicas de recuperación (no requieren sesión)
+  const isPublicAuthRoute =
+    pathname.startsWith('/admin/recuperar') ||
+    pathname.startsWith('/admin/nueva-contrasena')
   const isAdminRoute = pathname.startsWith('/admin')
 
-  // 3. Redirigir al inicio si ya está autenticado e intenta ir al login
+  // 1. Si ya está autenticado e intenta ir al login → al inicio
   if (isLoginPage && user) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // 4. Bloquear el acceso si no está autenticado e intenta ir a rutas dentro de /admin
-  if (isAdminRoute && !isLoginPage && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // 2. Si NO está autenticado e intenta ir a /admin (excepto login y recuperación) → al login
+  if (isAdminRoute && !isLoginPage && !isPublicAuthRoute && !user) {
+    return NextResponse.redirect(new URL('/admin/login', request.url))
   }
 
-  // 5. Validación de Administrador consultando la tabla 'administradores' y su rol
-  if (isAdminRoute && !isLoginPage && user) {
+  // 3. Validación de admin (solo rutas protegidas, no aplica a recuperación)
+  if (isAdminRoute && !isLoginPage && !isPublicAuthRoute && user) {
+    const email = (user.email || '').toLowerCase()
+
+    if (!ADMIN_EMAILS.includes(email)) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
     const { data: admin, error } = await supabase
       .from('administradores')
       .select('rol')

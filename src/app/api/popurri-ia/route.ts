@@ -206,6 +206,21 @@ const PALABRAS_VACIAS_TEMA = new Set([
   'corazon', 'alma', 'vida', 'mundo', 'hoy', 'siempre', 'eterno'
 ])
 
+// Categorías que el usuario asigna manualmente en el admin (valores de `temas`)
+const CATEGORIAS_MANUALES = new Set([
+  'infantil', 'evangelismo', 'perdon', 'fe', 'amor', 'gratitud', 'adoracion',
+  'alabanza', 'esperanza', 'sanidad', 'fidelidad', 'salvacion', 'unicidad',
+  'navidad', 'segunda venida', 'familia', 'oracion'
+])
+
+// Tempo típico esperado por categoría (solo para ordenar/coherencia de coincidencias)
+const TEMPO_POR_CATEGORIA: Record<string, string[]> = {
+  adoracion: ['lento', 'medio'],
+  alabanza: ['medio', 'rapido'],
+  infantil: ['medio', 'rapido'],
+  evangelismo: ['medio', 'rapido'],
+}
+
 // ═══════════════════════════════════════════════════════════════
 // DETECTOR DE ESTILO INFANTIL (heurísticas de lenguaje)
 // ═══════════════════════════════════════════════════════════════
@@ -224,7 +239,6 @@ const VOCABULARIO_INFANTIL = [
       'telefono','arca','mono','perrito','gatito','conejo','pajarito','pajaritos',
       'caballito','caballitos','manitos','dedito','deditos','piecito','piececitos','ojito','ojitos',
       'narizita','narizitas','mar','peces','pecesitos','pecesito','cielito','cielitos'
-      
 ]
 
 const HISTORIAS_BIBLICAS_INFANTILES: [RegExp, number][] = [
@@ -324,6 +338,15 @@ function puntuarTema(cancion: any, palabrasTema: string[]): number {
 function generarRazon(cancion: any, palabrasTema: string[]): string {
   const titulo = normalizarTexto(cancion.titulo || '')
   const letra = normalizarTexto(cancion.letra || '')
+  const tags: string[] = Array.isArray(cancion.temas)
+    ? cancion.temas.map((t: string) => normalizarTexto(t))
+    : []
+
+  // 🆕 Si la canción tiene la categoría buscada asignada, la razón lo refleja
+  const categoriaCoincidente = palabrasTema.find((w) => tags.includes(w))
+  if (categoriaCoincidente) {
+    return `Categorizada como ${categoriaCoincidente} en tu catálogo`
+  }
 
   const enTitulo: string[] = []
   const enLetra: string[] = []
@@ -503,7 +526,6 @@ export async function POST(req: Request) {
   try {
     const { accion, prompt, tonoOrigen, tonoDestino, cancionOrigen, cancionDestino } = await req.json()
 
-    // 🔒 GUARD DE AUTENTICACIÓN: protege el sugeridor de popurrís
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -525,17 +547,11 @@ export async function POST(req: Request) {
       const tema = extraerTema(prompt)
       const modo = extraerModo(prompt)
 
-      let query = supabase
+      // 🔧 SIN filtro SQL por tonalidad: el tono pedido es DESTINO (transposición),
+      // no un filtro de catálogo. Se maneja en procesarSugerencias.
+      const { data: canciones, error } = await supabase
         .from('canciones')
         .select('id, titulo, tonalidad, tempo, tipo, libro, letra, temas')
-
-      if (tonalidades.length === 1) {
-        query = query.eq('tonalidad', tonalidades[0])
-      } else if (tonalidades.length > 1) {
-        query = query.in('tonalidad', tonalidades)
-      }
-
-      const { data: canciones, error } = await query
 
       if (error) {
         if (error.message?.includes('temas')) {
@@ -617,14 +633,69 @@ function procesarSugerencias(
     : []
   const temaDisplay = palabrasTema.join(' ')
 
-  if (palabrasTema.length > 0) {
-    const puntuadas = resultados
-      .map((c: any) => ({ cancion: c, score: puntuarTema(c, palabrasTema) }))
-      .filter((x) => x.score >= 2)
-      .sort((a, b) => b.score - a.score)
+  // 🔧 Si pidieron tono SIN tema: filtramos por tono original (comportamiento clásico)
+  if (tonalidades.length > 0 && palabrasTema.length === 0) {
+    const conTono = resultados.filter((c: any) =>
+      tonalidades.includes((c.tonalidad || '').trim())
+    )
+    if (conTono.length > 0) {
+      resultados = conTono
+    } else {
+      return NextResponse.json({
+        exito: true,
+        sugerencias: [],
+        tonoPedido: tonalidades,
+        explicacion: `No hay canciones en ${tonalidades.join(' y ')} en tu catálogo.`,
+      })
+    }
+  }
 
-    if (puntuadas.length > 0) {
-      resultados = puntuadas.map((x) => ({ ...x.cancion, score: x.score }))
+  // 🆕 LÓGICA DEFINITIVA: categoría manual manda + coincidencias por letra
+  if (palabrasTema.length > 0) {
+    const categoriaBuscada = palabrasTema.find((w) => CATEGORIAS_MANUALES.has(w)) || null
+    const permitidosTempo = categoriaBuscada ? (TEMPO_POR_CATEGORIA[categoriaBuscada] || null) : null
+
+    const tagsDe = (c: any): string[] =>
+      Array.isArray(c.temas) ? c.temas.map((t: string) => normalizarTexto(t)) : []
+
+    const tempoCoherente = (c: any): boolean => {
+      if (!permitidosTempo) return true
+      const t = normalizarTexto(c.tempo || '')
+      if (!t) return true
+      return permitidosTempo.some((p) => t.includes(p))
+    }
+
+    const bonusTono = (c: any): number =>
+      tonalidades.length > 0 && tonalidades.includes((c.tonalidad || '').trim()) ? 30 : 0
+
+    let combinadas: { cancion: any; score: number }[]
+
+    if (categoriaBuscada) {
+      // A) Las etiquetadas con la categoría: entran SIEMPRE (prioridad máxima)
+      const conTag = resultados
+        .filter((c: any) => tagsDe(c).includes(categoriaBuscada))
+        .map((c: any) => ({
+          cancion: c,
+          score: 50 + puntuarTema(c, palabrasTema) + (tempoCoherente(c) ? 10 : 0) + bonusTono(c),
+        }))
+
+      // B) Coincidencias por letra SIN tag: solo si son fuertes y coherentes en tempo
+      const sinTag = resultados
+        .filter((c: any) => !tagsDe(c).includes(categoriaBuscada))
+        .map((c: any) => ({ cancion: c, score: puntuarTema(c, palabrasTema) + bonusTono(c) }))
+        .filter((x) => x.score >= 6 && tempoCoherente(x.cancion))
+
+      combinadas = [...conTag, ...sinTag].sort((a, b) => b.score - a.score)
+    } else {
+      // Sin categoría manual: matching clásico por letra
+      combinadas = resultados
+        .map((c: any) => ({ cancion: c, score: puntuarTema(c, palabrasTema) + bonusTono(c) }))
+        .filter((x) => x.score >= 2)
+        .sort((a, b) => b.score - a.score)
+    }
+
+    if (combinadas.length > 0) {
+      resultados = combinadas.map((x) => ({ ...x.cancion, score: x.score }))
     } else {
       return NextResponse.json({
         exito: true,
@@ -705,6 +776,8 @@ function procesarSugerencias(
   const sugerenciasConRazon = sugerencias.map((c: any) => ({
     ...c,
     razon: palabrasTema.length > 0 ? generarRazon(c, palabrasTema) : null,
+    // 🔧 Tono destino para que el armador las deje transpuestas ahí
+    tonoSugerido: tonalidades.length > 0 ? tonalidades[0] : null,
   }))
 
   const mensajeIA = generarMensajeIA(

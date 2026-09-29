@@ -67,6 +67,7 @@ const BADGE_ESTADO: Record<string, string> = {
   no_publicar: 'bg-red-50 text-red-700 border-red-200',
 }
 
+const ADMIN_EMAILS = ['alexanderalzate53@gmail.com']
 const POR_PAGINA = 10
 const LIBROS = ['Lluvias de Bendición', 'Manantial de Inspiración', 'Coros y Adoración']
 
@@ -101,13 +102,19 @@ export default function AdminPage() {
   const [procesando, setProcesando] = useState(false)
   const [mensaje, setMensaje] = useState('')
 
-  // 🆕 Paginación
   const [paginaActual, setPaginaActual] = useState(1)
 
+  // 🔒 Guard de autenticación + validación de email admin
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
         router.push('/admin/login')
+        return
+      }
+      const email = (data.user.email || '').toLowerCase()
+      if (!ADMIN_EMAILS.includes(email)) {
+        alert('No tienes permisos para acceder al panel de administración.')
+        supabase.auth.signOut().then(() => router.push('/admin/login'))
         return
       }
       setAutenticado(true)
@@ -116,7 +123,6 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 🆕 Reset página cuando cambian los filtros
   useEffect(() => {
     setPaginaActual(1)
   }, [busqueda, filtroLibro, filtroCategoria, filtroEstado, filtroLegal])
@@ -150,7 +156,6 @@ export default function AdminPage() {
     })
   }, [canciones, busqueda, filtroLibro, filtroCategoria, filtroEstado, filtroLegal])
 
-  // 🆕 Cálculo de paginación
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA))
   const cancionesPagina = useMemo(() => {
     const inicio = (paginaActual - 1) * POR_PAGINA
@@ -173,7 +178,6 @@ export default function AdminPage() {
   }
 
   const toggleTodas = () => {
-    // Selecciona/deselecciona todas las filtradas (no solo la página actual)
     if (seleccionadas.length === filtradas.length) setSeleccionadas([])
     else setSeleccionadas(filtradas.map((c) => c.id))
   }
@@ -248,7 +252,6 @@ export default function AdminPage() {
         </Link>
       </div>
 
-      {/* ⚖️ Semáforo legal + stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-[10px] font-bold text-slate-400 uppercase">Total</p>
@@ -281,7 +284,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Filtros */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-slate-600 font-bold text-xs">
@@ -327,7 +329,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Barra de lote */}
       {seleccionadas.length > 0 && (
         <div className="bg-[#0F2C4C] p-3 rounded-2xl flex flex-wrap items-center gap-2 shadow-md">
           <span className="text-white text-xs font-bold shrink-0">{seleccionadas.length} seleccionada(s)</span>
@@ -356,7 +357,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Tabla */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {cargando ? (
           <p className="text-xs text-slate-500 py-10 text-center">Cargando canciones...</p>
@@ -434,7 +434,6 @@ export default function AdminPage() {
               </table>
             </div>
 
-            {/* 🆕 Controles de paginación */}
             {totalPaginas > 1 && (
               <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-slate-50">
                 <button

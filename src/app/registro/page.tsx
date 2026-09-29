@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { registrarLiderEIglesia } from '@/actions/auth'
+import Link from 'next/link'
 
 export default function RegistroPage() {
   const [mensajeError, setMensajeError] = useState<string | null>(null)
@@ -67,6 +68,17 @@ export default function RegistroPage() {
           Crear cuenta y comenzar prueba
         </button>
       </form>
+       {/* 🆕 Link de vuelta al login */}
+      <p className="mt-4 text-center text-xs text-slate-500">
+        ¿Ya tenés cuenta?{' '}
+        <Link
+          href="/admin/login"
+          className="font-semibold text-[#1B5FA8] hover:underline"
+        >
+          Iniciá sesión
+        </Link>
+      </p>
     </div>
   )
 }
+    

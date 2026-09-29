@@ -111,6 +111,27 @@ export default function AdminLoginPage() {
           >
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
+
+         
+                    <Link
+            href="/admin/recuperar"
+            className="block text-center text-xs text-slate-500 hover:text-[#1B5FA8] hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+
+          {/* 🆕 Link a registro de líderes */}
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-center text-xs text-slate-500">
+              ¿Sos líder de alabanza y aún no tenés cuenta?{' '}
+              <Link
+                href="/registro"
+                className="font-semibold text-[#1B5FA8] hover:underline"
+              >
+                Registrate gratis
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>

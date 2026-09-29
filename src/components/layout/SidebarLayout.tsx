@@ -13,6 +13,7 @@ import {
   PlusCircleIcon,
   AdjustmentsVerticalIcon,
   UserIcon,
+  UsersIcon,
   ArrowRightOnRectangleIcon,
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
@@ -30,6 +31,7 @@ const mainNavigation = [
 const adminNavigation = [
   { name: 'Añadir Canción', href: '/admin/crear', icon: PlusCircleIcon },
   { name: 'Administrar', href: '/admin', icon: AdjustmentsVerticalIcon },
+  { name: 'Usuarios', href: '/admin/usuarios', icon: UsersIcon },
 ]
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
