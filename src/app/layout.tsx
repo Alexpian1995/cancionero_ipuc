@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Fraunces, Inter } from 'next/font/google'
 import { SidebarLayout } from '@/components/layout/SidebarLayout'
+import { RecoveryRedirect } from '@/components/RecoveryRedirect'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -23,6 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className="h-full">
       <body className={`${fraunces.variable} ${inter.variable} font-sans bg-[#F8FAFC] text-[#1A2530] h-full`}>
+        {/* 🆕 Detecta el token de recuperación del email y redirige a nueva-contraseña */}
+        <RecoveryRedirect />
         <SidebarLayout>
           {children}
         </SidebarLayout>
