@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache' 
+import { revalidatePath } from 'next/cache'
 
 function generarCodigoSesion(longitud = 6): string {
   const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -16,7 +16,7 @@ function generarCodigoSesion(longitud = 6): string {
 export async function obtenerBibliotecaPopurris() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
     return { exito: false, codigo: 'NO_AUTENTICADO', popurris: [] }
   }
@@ -24,10 +24,10 @@ export async function obtenerBibliotecaPopurris() {
   const { data, error } = await supabase
     .from('popurris')
     .select(`
-      id, 
-      titulo, 
-      codigo_sesion, 
-      created_at, 
+      id,
+      titulo,
+      codigo_sesion,
+      created_at,
       nombre_lider_manual,
       popurri_canciones (
         id,
@@ -38,7 +38,7 @@ export async function obtenerBibliotecaPopurris() {
         canciones ( id, titulo )
       )
     `)
-    .eq('lider_id', user.id)  // ← eq simple, no .or()
+    .eq('lider_id', user.id)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -58,7 +58,7 @@ export async function obtenerBibliotecaPopurris() {
 export async function obtenerPopurriPorId(popurriId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
     return { exito: false, codigo: 'NO_AUTENTICADO' }
   }
@@ -77,16 +77,16 @@ export async function obtenerPopurriPorId(popurriId: string) {
         orden,
         tonalidad,
         transicion,
-        canciones ( 
-          id, 
-          titulo, 
-          letra, 
-          tonalidad 
+        canciones (
+          id,
+          titulo,
+          letra,
+          tonalidad
         )
       )
     `)
     .eq('id', popurriId)
-    .eq('lider_id', user.id)  // ← verificar que sea del usuario
+    .eq('lider_id', user.id)
     .single()
 
   if (error) {
@@ -133,10 +133,9 @@ export async function guardarOActualizarPopurri(datos: {
   }>
 }) {
   const supabase = await createClient()
-  
-  // ✅ VERIFICAR AUTENTICACIÓN PRIMERO
+
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
     return {
       exito: false,
@@ -150,20 +149,18 @@ export async function guardarOActualizarPopurri(datos: {
   let codigoSesion = ''
   let existeEnBaseDatos = false
 
-  // Verificar si existe y es del usuario
   if (popurriId) {
     const { data: verif } = await supabase
       .from('popurris')
       .select('id, codigo_sesion, lider_id')
       .eq('id', popurriId)
-      .eq('lider_id', userIdActual)  // ← verificar propiedad
+      .eq('lider_id', userIdActual)
       .maybeSingle()
 
     if (verif) {
       existeEnBaseDatos = true
       codigoSesion = verif.codigo_sesion
 
-      // Actualizar cabecera
       const { error: errUpdate } = await supabase
         .from('popurris')
         .update({
@@ -181,21 +178,19 @@ export async function guardarOActualizarPopurri(datos: {
         }
       }
 
-      // Eliminar canciones anteriores
       await supabase.from('popurri_canciones').delete().eq('popurri_id', popurriId)
     }
   }
 
-  // Insertar nuevo popurrí
   if (!popurriId || !existeEnBaseDatos) {
     codigoSesion = generarCodigoSesion()
-    
+
     const { data: nuevo, error: errInsert } = await supabase
       .from('popurris')
       .insert({
         titulo: datos.titulo || 'Nuevo Popurrí / Medley',
         codigo_sesion: codigoSesion,
-        lider_id: userIdActual,  // ← SIEMPRE el usuario autenticado (cumple RLS)
+        lider_id: userIdActual,
         nombre_lider_manual: datos.nombreLider || null,
         iglesia_id: datos.iglesiaId || null,
       })
@@ -204,8 +199,7 @@ export async function guardarOActualizarPopurri(datos: {
 
     if (errInsert) {
       console.error('Error insertando popurrí:', errInsert)
-      
-      // Error 42501 = violación de RLS
+
       if (errInsert.code === '42501') {
         return {
           exito: false,
@@ -213,8 +207,7 @@ export async function guardarOActualizarPopurri(datos: {
           error: 'Tu sesión expiró o no tienes permisos. Vuelve a iniciar sesión e inténtalo de nuevo.',
         }
       }
-      
-      // Error de FK o restricción
+
       if (errInsert.code === '23503' || errInsert.code === '23514') {
         return {
           exito: false,
@@ -222,18 +215,17 @@ export async function guardarOActualizarPopurri(datos: {
           error: 'Hay un problema con los datos del popurrí. Verifica la información e inténtalo de nuevo.',
         }
       }
-      
+
       return {
         exito: false,
         codigo: 'ERROR_DB',
         error: 'No pudimos guardar el popurrí. Inténtalo nuevamente en unos segundos.',
       }
     }
-    
+
     popurriId = nuevo.id
   }
 
-  // Insertar canciones
   if (datos.canciones && datos.canciones.length > 0) {
     const detalle = datos.canciones
       .map((item: any, index) => {
@@ -268,7 +260,7 @@ export async function guardarOActualizarPopurri(datos: {
   return { exito: true, popurriId, codigoSesion }
 }
 
-// 4. ELIMINAR POPURRÍ
+// 4. ELIMINAR POPURRÍ (MEJORADO)
 export async function eliminarPopurri(
   popurriId: string
 ): Promise<{ exito: boolean; error?: string }> {
@@ -279,44 +271,70 @@ export async function eliminarPopurri(
     return { exito: false, error: 'Debes iniciar sesión para eliminar popurrís.' }
   }
 
-  // Verificar propiedad antes de eliminar (seguridad)
-  const { data: verif } = await supabase
+  const { data: verif, error: errVerif } = await supabase
     .from('popurris')
     .select('id, lider_id')
     .eq('id', popurriId)
-    .eq('lider_id', user.id)
     .maybeSingle()
 
+  if (errVerif) {
+    console.error('Error verificando popurrí:', errVerif)
+    return { exito: false, error: 'Error al verificar el popurrí.' }
+  }
+
   if (!verif) {
+    return { exito: false, error: 'Popurrí no encontrado.' }
+  }
+
+  if (verif.lider_id !== user.id) {
     return { exito: false, error: 'No tienes permisos para eliminar este popurrí.' }
   }
 
-  // 1) Eliminar las canciones hijas (por si no hay ON DELETE CASCADE)
-  await supabase
+  // 1) Eliminar canciones hijas
+  const { data: cancionesEliminadas, error: errCanciones } = await supabase
     .from('popurri_canciones')
     .delete()
     .eq('popurri_id', popurriId)
+    .select()
 
-  // 2) Eliminar el popurrí
-  const { error } = await supabase
+  if (errCanciones) {
+    console.error('Error eliminando canciones:', errCanciones)
+    return { exito: false, error: 'Error al eliminar las canciones del popurrí.' }
+  }
+
+  console.log(`Eliminadas ${cancionesEliminadas?.length || 0} canciones del popurrí`)
+
+  // 2) Eliminar popurrí con verificación
+  const { data: eliminados, error: errDelete } = await supabase
     .from('popurris')
     .delete()
     .eq('id', popurriId)
+    .select()
 
-  if (error) {
-    console.error('Error eliminando popurrí:', error)
+  if (errDelete) {
+    console.error('Error eliminando popurrí:', errDelete)
     return { exito: false, error: 'No pudimos eliminar el popurrí.' }
   }
 
-  // Refresca la página en el servidor para que el cambio se refleje
+  if (!eliminados || eliminados.length === 0) {
+    console.error('RLS bloqueó la eliminación del popurrí')
+    return {
+      exito: false,
+      error: 'La base de datos rechazó la eliminación. Verificá las políticas RLS.',
+    }
+  }
+
+  console.log(`Popurrí ${popurriId} eliminado correctamente`)
+
   revalidatePath('/popurri')
   return { exito: true }
 }
-// 5. ESTADO DE SUSCRIPCIÓN (CORREGIDO)
+
+// 5. ESTADO DE SUSCRIPCIÓN
 export async function obtenerEstadoSuscripcion() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
     return {
       autenticado: false,
@@ -326,18 +344,28 @@ export async function obtenerEstadoSuscripcion() {
     }
   }
 
-  // TODO: Aquí deberías verificar la suscripción real contra tu tabla de suscripciones
-  // Por ahora, asumimos que si está autenticado tiene suscripción válida
-  const { data: perfil } = await supabase
-    .from('perfiles') // o la tabla que uses para perfiles/miembros
-    .select('iglesia_id')
-    .eq('user_id', user.id)
-    .single()
+  // Consultar la iglesia donde este usuario es líder
+  const { data: iglesia } = await supabase
+    .from('iglesias')
+    .select('id, estado_suscripcion, fin_suscripcion')
+    .eq('lider_id', user.id)
+    .maybeSingle()
+
+  // Verificar si la suscripción está activa (trial o pro)
+  let tieneSuscripcionValida = false
+  if (iglesia) {
+    if (iglesia.estado_suscripcion === 'active') {
+      tieneSuscripcionValida = true
+    } else if (iglesia.estado_suscripcion === 'trial' && iglesia.fin_suscripcion) {
+      const fin = new Date(iglesia.fin_suscripcion)
+      tieneSuscripcionValida = fin > new Date()
+    }
+  }
 
   return {
     autenticado: true,
-    tieneSuscripcionValida: true,
-    usuarioId: user.id,  // ← AHORA SÍ devuelve el user_id real
-    iglesiaId: perfil?.iglesia_id || null
+    tieneSuscripcionValida,
+    usuarioId: user.id,
+    iglesiaId: iglesia?.id || null
   }
 }

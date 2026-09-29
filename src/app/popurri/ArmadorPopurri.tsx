@@ -12,6 +12,7 @@ import {
   MusicalNoteIcon,
   SparklesIcon,
   DocumentDuplicateIcon,
+  DocumentArrowDownIcon, // 🆕 Exportar PDF
   FunnelIcon,
   ExclamationTriangleIcon,
   LightBulbIcon,
@@ -26,6 +27,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 import PopurriDetalleView from './PopurriDetalleView'
+import { exportarPopurriAPDF } from '@/lib/pdfExport' // 🆕
 import {
   guardarOActualizarPopurri,
   obtenerEstadoSuscripcion,
@@ -164,6 +166,12 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
 
   const [autenticado, setAutenticado] = useState<boolean | null>(null)
   const [paginaActual, setPaginaActual] = useState(1)
+
+  // 🆕 Estados para exportar a PDF
+  const [modalExportar, setModalExportar] = useState(false)
+  const [exportando, setExportando] = useState(false)
+  const [modoPDF, setModoPDF] = useState<'musico' | 'cantante'>('musico')
+  const [orientacionPDF, setOrientacionPDF] = useState<'portrait' | 'landscape'>('portrait')
 
   useEffect(() => {
     const supabase = createClient()
@@ -462,6 +470,49 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
       alert(`Error al guardar el popurrí: ${err.message || ''}`)
     } finally {
       setGuardando(false)
+    }
+  }
+
+  // 🆕 EXPORTAR A PDF
+  const handleExportarPDF = async () => {
+    if (seleccionadas.length === 0) {
+      alert('Agregá al menos una canción al popurrí para exportar.')
+      return
+    }
+
+    setExportando(true)
+    try {
+      const cancionesParaPDF = seleccionadas.map((item) => {
+        const tonoOrig = item.tonalidad || 'C'
+        const tonoSel = item.tonoSeleccionado || tonoOrig
+        const semitonos = distanciaSemitonos(tonoOrig, tonoSel)
+
+        return {
+          titulo: item.titulo,
+          tonalidadOriginal: tonoOrig,
+          tonalidadActual: tonoSel,
+          letraConAcordes: transponerLetraCompleta(
+            item.acordes || item.letra || 'Letra y acordes no disponibles',
+            semitonos
+          ),
+          transicionSugerida: item.notas || undefined,
+        }
+      })
+
+      await exportarPopurriAPDF({
+        titulo: nombrePopurri || 'Popurrí sin título',
+        lider: obtenerNombreLider() || undefined,
+        canciones: cancionesParaPDF,
+        modo: modoPDF,
+        orientacion: orientacionPDF,
+      })
+
+      setModalExportar(false)
+    } catch (err) {
+      console.error('Error exportando PDF:', err)
+      alert('Error al generar el PDF: ' + (err instanceof Error ? err.message : 'desconocido'))
+    } finally {
+      setExportando(false)
     }
   }
 
@@ -889,6 +940,15 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                       Ver Modo En Vivo
                     </button>
 
+                    {/* 🆕 BOTÓN EXPORTAR PDF */}
+                    <button
+                      onClick={() => setModalExportar(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-700 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-sm"
+                    >
+                      <DocumentArrowDownIcon className="w-4 h-4" />
+                      Exportar PDF
+                    </button>
+
                     <button
                       onClick={copiarResumen}
                       className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#D9A544] text-[#0F2C4C] font-bold text-xs hover:bg-[#e8b95f] transition-colors shadow-sm"
@@ -1013,6 +1073,166 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* 🆕 MODAL DE EXPORTAR A PDF                          */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {modalExportar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-[#0F2C4C] text-lg">Exportar Popurrí a PDF</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Descargá tu popurrí para verlo sin conexión a internet
+                </p>
+              </div>
+              <button
+                onClick={() => setModalExportar(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modo */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Modo de exportación
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setModoPDF('musico')}
+                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                    modoPDF === 'musico'
+                      ? 'border-[#1B5FA8] bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <MusicalNoteIcon className={`w-4 h-4 ${modoPDF === 'musico' ? 'text-[#1B5FA8]' : 'text-slate-400'}`} />
+                    <span className={`text-sm font-bold ${modoPDF === 'musico' ? 'text-[#1B5FA8]' : 'text-slate-700'}`}>
+                      Músico
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Letra con acordes encima</p>
+                </button>
+
+                <button
+                  onClick={() => setModoPDF('cantante')}
+                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                    modoPDF === 'cantante'
+                      ? 'border-[#1B5FA8] bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <UserIcon className={`w-4 h-4 ${modoPDF === 'cantante' ? 'text-[#1B5FA8]' : 'text-slate-400'}`} />
+                    <span className={`text-sm font-bold ${modoPDF === 'cantante' ? 'text-[#1B5FA8]' : 'text-slate-700'}`}>
+                      Cantante
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Solo la letra, sin acordes</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Orientación */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Orientación de página
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setOrientacionPDF('portrait')}
+                  className={`p-3 rounded-xl border-2 transition-all ${
+                    orientacionPDF === 'portrait'
+                      ? 'border-[#1B5FA8] bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 justify-center">
+                    <div className={`w-5 h-7 border-2 rounded-sm ${
+                      orientacionPDF === 'portrait' ? 'border-[#1B5FA8]' : 'border-slate-400'
+                    }`}></div>
+                    <span className={`text-sm font-bold ${
+                      orientacionPDF === 'portrait' ? 'text-[#1B5FA8]' : 'text-slate-700'
+                    }`}>
+                      Vertical
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setOrientacionPDF('landscape')}
+                  className={`p-3 rounded-xl border-2 transition-all ${
+                    orientacionPDF === 'landscape'
+                      ? 'border-[#1B5FA8] bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 justify-center">
+                    <div className={`w-7 h-5 border-2 rounded-sm ${
+                      orientacionPDF === 'landscape' ? 'border-[#1B5FA8]' : 'border-slate-400'
+                    }`}></div>
+                    <span className={`text-sm font-bold ${
+                      orientacionPDF === 'landscape' ? 'text-[#1B5FA8]' : 'text-slate-700'
+                    }`}>
+                      Horizontal
+                    </span>
+                  </div>
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-2">
+                💡 Horizontal es ideal para el modo músico: caben más acordes por línea.
+              </p>
+            </div>
+
+            {/* Preview */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1">
+              <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Resumen</p>
+              <div className="text-xs text-slate-700 space-y-0.5">
+                <p><strong>{seleccionadas.length}</strong> canciones en el popurrí</p>
+                <p>Título: <strong>{nombrePopurri || 'Sin título'}</strong></p>
+                <p>Líder: <strong>{obtenerNombreLider() || 'No especificado'}</strong></p>
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setModalExportar(false)}
+                disabled={exportando}
+                className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleExportarPDF}
+                disabled={exportando}
+                className="flex-1 px-4 py-2.5 text-xs font-bold text-white bg-[#0F2C4C] rounded-xl hover:bg-[#1B5FA8] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {exportando ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <DocumentArrowDownIcon className="w-4 h-4" />
+                    Descargar PDF
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

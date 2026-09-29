@@ -8,7 +8,10 @@ import {
   PlusIcon,
   MusicalNoteIcon,
   UserIcon,
-  ArrowsPointingOutIcon
+  ArrowsPointingOutIcon,
+  MagnifyingGlassPlusIcon,
+  MagnifyingGlassMinusIcon,
+  ArrowsPointingInIcon
 } from '@heroicons/react/24/outline'
 
 type CancionPopurri = {
@@ -84,6 +87,32 @@ function limpiarAcordesParaCantante(texto: string): string {
   return lineasFiltradas.join('\n')
 }
 
+// 🆕 Divide la letra en estrofas (bloques separados por líneas vacías)
+// para que cada una se mantenga íntegra en una columna (no se parte a la mitad)
+function dividirEnEstrofas(texto: string): string[] {
+  if (!texto) return []
+  const lineas = texto.split('\n')
+  const estrofas: string[] = []
+  let bloqueActual: string[] = []
+
+  for (const linea of lineas) {
+    if (linea.trim() === '') {
+      if (bloqueActual.length > 0) {
+        estrofas.push(bloqueActual.join('\n'))
+        bloqueActual = []
+      }
+    } else {
+      bloqueActual.push(linea)
+    }
+  }
+
+  if (bloqueActual.length > 0) {
+    estrofas.push(bloqueActual.join('\n'))
+  }
+
+  return estrofas
+}
+
 export default function PopurriDetalleView({ popurriInicial = [], catalogo = [], onVolver }: Props) {
   const cancionesNormalizadas: CancionPopurri[] = popurriInicial.map((item, index) => ({
     id: item.id || item.cancionId || `cancion-${index}`,
@@ -101,10 +130,13 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
   const [modoVista, setModoVista] = useState<'musico' | 'cantante'>('musico')
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false)
 
-  // Auto-ajuste de tamaño de letra en pantalla completa
-  const [tamanoLetraFS, setTamanoLetraFS] = useState(40)
+  // 🆕 Control de tamaño de fuente (override manual del auto-ajuste)
+  const [tamanoLetraFS, setTamanoLetraFS] = useState(32)
+  const [columnas, setColumnas] = useState<1 | 2 | 3>(3)
+  const [tamanoManual, setTamanoManual] = useState(false) // si el usuario ajustó manualmente
+
   const contenedorFSRef = useRef<HTMLDivElement>(null)
-  const textoFSRef = useRef<HTMLPreElement>(null)
+  const textoFSRef = useRef<HTMLDivElement>(null)
 
   const cancionActiva = canciones[indiceActivo]
 
@@ -123,8 +155,9 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
     ? limpiarAcordesParaCantante(textoTranspuesto)
     : textoTranspuesto
 
-  // ✅ AUTO-AJUSTE CORREGIDO: encoge la letra hasta un mínimo legible;
-  // si aun así no entra, el contenedor permite scroll (letra siempre completa)
+  const estrofas = dividirEnEstrofas(textoFinal)
+
+  // ✅ AUTO-AJUSTE: solo si el usuario NO ajustó manualmente
   useLayoutEffect(() => {
     if (!isFullScreenOpen || !cancionActiva) return
 
@@ -132,18 +165,22 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
     const texto = textoFSRef.current
     if (!contenedor || !texto) return
 
-    // Al cambiar de canción o modo, volver arriba
     contenedor.scrollTop = 0
 
+    // Si el usuario ajustó manualmente, respetar su preferencia
+    if (tamanoManual) return
+
     const ajustarTamano = () => {
-      let tamano = 44
-      const minimo = 18 // piso legible para proyección en vivo
+      let tamano = 42
+      const minimo = 20
 
       texto.style.fontSize = `${tamano}px`
 
-      while (texto.scrollHeight > contenedor.clientHeight && tamano > minimo) {
-        tamano -= 1
+      let intentos = 0
+      while (texto.scrollHeight > contenedor.clientHeight && tamano > minimo && intentos < 30) {
+        tamano -= 2
         texto.style.fontSize = `${tamano}px`
+        intentos++
       }
 
       setTamanoLetraFS(tamano)
@@ -152,7 +189,13 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
     ajustarTamano()
     window.addEventListener('resize', ajustarTamano)
     return () => window.removeEventListener('resize', ajustarTamano)
-  }, [isFullScreenOpen, indiceActivo, transposicionGlobal, transposicionesIndiv, modoVista, cancionActiva])
+  }, [isFullScreenOpen, indiceActivo, transposicionGlobal, transposicionesIndiv, modoVista, cancionActiva, tamanoManual, columnas])
+
+  // 🆕 Al cambiar de canción, resetear el ajuste manual
+  useLayoutEffect(() => {
+    setTamanoManual(false)
+    setTamanoLetraFS(32)
+  }, [indiceActivo])
 
   const cambiarTransposicionIndividual = (cancionId: string, delta: number) => {
     setTransposicionesIndiv(prev => ({
@@ -174,6 +217,31 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
       letraConAcordes: item.acordes || item.letra || 'Letra y acordes no disponibles'
     }
     setCanciones([...canciones, nueva])
+  }
+
+  // 🆕 Controles de zoom
+  const aumentarLetra = () => {
+    setTamanoManual(true)
+    setTamanoLetraFS(prev => Math.min(prev + 4, 80))
+  }
+
+  const reducirLetra = () => {
+    setTamanoManual(true)
+    setTamanoLetraFS(prev => Math.max(prev - 4, 16))
+  }
+
+  const resetearZoom = () => {
+    setTamanoManual(false)
+    setTamanoLetraFS(32)
+  }
+
+  const toggleFullScreen = () => {
+    const el = document.documentElement
+    if (!document.fullscreenElement) {
+      el.requestFullscreen?.().catch(() => {})
+    } else {
+      document.exitFullscreen?.().catch(() => {})
+    }
   }
 
   return (
@@ -248,10 +316,9 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
           )}
         </div>
 
-        {/* PANEL DERECHO: Visor En Vivo / Teleprompter */}
+        {/* PANEL DERECHO: Visor En Vivo */}
         <div className="lg:col-span-8 space-y-4">
           
-          {/* Barra Superior de Controles Globales */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -271,7 +338,6 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
                 Pantalla Completa
               </button>
 
-              {/* Transposición Global */}
               <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
                 <span className="text-xs font-bold text-slate-600 px-2">Tono Global:</span>
                 <button
@@ -291,7 +357,6 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
                 </button>
               </div>
 
-              {/* Selector Modo Músico / Cantante */}
               <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
                 <button
                   onClick={() => setModoVista('musico')}
@@ -322,7 +387,6 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
             </div>
           </div>
 
-          {/* Visor de Letra y Acordes */}
           {cancionActiva && (
             <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
               
@@ -400,69 +464,147 @@ export default function PopurriDetalleView({ popurriInicial = [], catalogo = [],
 
       </div>
 
-      {/* MODAL DE PANTALLA COMPLETA */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* 🆕 MODAL DE PANTALLA COMPLETA REDISEÑADO (tipo cancionero) */}
+      {/* ═══════════════════════════════════════════════════════════ */}
       {isFullScreenOpen && cancionActiva && (
-        <div className="fixed inset-0 z-50 bg-[#0F2C4C] text-white flex flex-col p-6 md:p-10">
+        <div className="fixed inset-0 z-50 bg-[#0F2C4C] text-white flex flex-col">
+          
           {/* Header */}
-          <div className="w-full flex items-center justify-between border-b border-white/10 pb-4 mb-4 shrink-0">
-            <div>
-              <span className="text-xs uppercase tracking-widest text-[#D9A544] font-bold">
-                Modo Presentación ({modoVista === 'musico' ? 'Músico' : 'Cantante'})
+          <div className="w-full flex items-center justify-between border-b border-white/10 px-6 md:px-10 py-4 shrink-0">
+            <div className="min-w-0">
+              <span className="text-[10px] uppercase tracking-widest text-[#D9A544] font-bold">
+                Modo Presentación · {modoVista === 'musico' ? 'Músico' : 'Cantante'}
               </span>
-              <h2 className="text-xl md:text-2xl font-bold mt-1">{cancionActiva.titulo}</h2>
+              <h2 className="text-lg md:text-2xl font-bold mt-0.5 truncate">{cancionActiva.titulo}</h2>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-white/10 rounded-lg font-bold text-xs">
-                Tono: {tonalidadCalculada}
+            <div className="flex items-center gap-2 shrink-0 ml-4">
+              <span className="px-3 py-1.5 bg-[#D9A544] text-[#0F2C4C] rounded-lg font-extrabold text-sm">
+                {tonalidadCalculada}
+              </span>
+              <span className="text-xs text-white/50 px-2 hidden md:inline">
+                {indiceActivo + 1}/{canciones.length}
               </span>
               <button
+                onClick={toggleFullScreen}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                title="Pantalla completa del navegador"
+              >
+                <ArrowsPointingInIcon className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => setIsFullScreenOpen(false)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/25 rounded-xl text-white font-bold text-xs transition-colors"
+                className="px-3 py-2 bg-white/10 hover:bg-red-500/80 rounded-lg text-white font-bold text-xs transition-colors"
               >
                 ✕ Cerrar
               </button>
             </div>
           </div>
 
-          {cancionActiva.transicionSugerida && (
-            <div className="text-xs text-[#D9A544] italic bg-white/5 p-2.5 rounded-lg border border-white/5 mb-3 shrink-0">
-              💡 Transición: {cancionActiva.transicionSugerida}
+          {/* Controles de zoom y columnas */}
+          <div className="w-full flex items-center justify-between gap-3 px-6 md:px-10 py-2 border-b border-white/5 bg-white/[0.02] shrink-0 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Letra:</span>
+              <button
+                onClick={reducirLetra}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold transition-colors"
+                title="Reducir letra"
+              >
+                <MagnifyingGlassMinusIcon className="w-3.5 h-3.5" /> A-
+              </button>
+              <span className="text-xs font-bold text-white/70 w-10 text-center">{tamanoLetraFS}px</span>
+              <button
+                onClick={aumentarLetra}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold transition-colors"
+                title="Agrandar letra"
+              >
+                A+ <MagnifyingGlassPlusIcon className="w-3.5 h-3.5" />
+              </button>
+              {tamanoManual && (
+                <button
+                  onClick={resetearZoom}
+                  className="text-[10px] text-white/50 hover:text-white underline px-2"
+                >
+                  auto
+                </button>
+              )}
             </div>
-          )}
 
-          {/* ✅ ZONA DE LETRA CORREGIDA: auto-ajusta y, si no entra, scroll (nunca recorta) */}
-          <div
-            ref={contenedorFSRef}
-            className="flex-1 min-h-0 overflow-y-auto pr-2"
-          >
-            <pre
-              ref={textoFSRef}
-              className={`leading-relaxed whitespace-pre-wrap ${
-                modoVista === 'cantante' ? 'font-sans font-medium' : 'font-mono'
-              }`}
-            >
-              {textoFinal}
-            </pre>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Columnas:</span>
+              {[1, 2, 3].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setColumnas(n as 1 | 2 | 3)}
+                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-colors ${
+                    columnas === n
+                      ? 'bg-[#D9A544] text-[#0F2C4C]'
+                      : 'bg-white/10 hover:bg-white/20 text-white'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+
+            {cancionActiva.transicionSugerida && (
+              <div className="text-xs text-[#D9A544] italic hidden lg:block">
+                💡 {cancionActiva.transicionSugerida}
+              </div>
+            )}
           </div>
 
-          {/* Navegación entre canciones del popurrí */}
-          <div className="w-full flex items-center justify-between border-t border-white/10 pt-4 mt-4 shrink-0">
+          {/* Zona de letra en columnas */}
+          <div
+            ref={contenedorFSRef}
+            className="flex-1 min-h-0 overflow-y-auto px-6 md:px-10 py-6"
+          >
+            <div
+              ref={textoFSRef}
+              className={`
+                w-full
+                ${columnas === 1 ? 'columns-1' : columnas === 2 ? 'columns-1 md:columns-2' : 'columns-1 md:columns-2 xl:columns-3'}
+                gap-x-10 gap-y-4
+                ${modoVista === 'cantante' ? 'font-sans font-medium' : 'font-mono'}
+                leading-[1.4]
+              `}
+              style={{ fontSize: `${tamanoLetraFS}px` }}
+            >
+              {estrofas.map((estrofa, i) => (
+                <div
+                  key={i}
+                  className="break-inside-avoid mb-6"
+                  style={{ whiteSpace: 'pre-wrap' }}
+                >
+                  {estrofa}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Navegación entre canciones */}
+          <div className="w-full flex items-center justify-between border-t border-white/10 px-6 md:px-10 py-4 shrink-0">
             <button
               onClick={() => setIndiceActivo(prev => Math.max(0, prev - 1))}
               disabled={indiceActivo === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold disabled:opacity-30 transition-all"
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold disabled:opacity-30 transition-all"
             >
               <ChevronLeftIcon className="w-4 h-4" /> Anterior
             </button>
 
-            <span className="text-xs text-white/50 font-medium">
-              Canción {indiceActivo + 1} de {canciones.length}
-            </span>
+            <div className="text-center">
+              <p className="text-sm text-white/70 font-semibold">
+                Canción {indiceActivo + 1} de {canciones.length}
+              </p>
+              <p className="text-[10px] text-white/40">
+                ← → teclas para navegar · ESC para cerrar
+              </p>
+            </div>
 
             <button
               onClick={() => setIndiceActivo(prev => Math.min(canciones.length - 1, prev + 1))}
               disabled={indiceActivo === canciones.length - 1}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1B5FA8] hover:bg-[#164a85] text-white text-xs font-bold disabled:opacity-30 transition-all"
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#D9A544] hover:bg-[#e8b95f] text-[#0F2C4C] text-sm font-bold disabled:opacity-30 transition-all"
             >
               Siguiente <ChevronRightIcon className="w-4 h-4" />
             </button>
