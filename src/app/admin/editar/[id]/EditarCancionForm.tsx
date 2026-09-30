@@ -13,7 +13,6 @@ interface Cancion {
   tonalidad: string
   tempo: string
   letra: string
-  tipo?: string | null
   temas?: string[] | null
   estado_legal?: string | null
   nota_legal?: string | null
@@ -23,15 +22,6 @@ const LIBROS = ['Lluvias de Bendición', 'Manantial de Inspiración', 'Coros y A
 
 const TONOS_MAYORES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B']
 const TONOS_MENORES = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm']
-
-// 🆕 Tipos de canción (igual que en el formulario de crear)
-const TIPOS_CANCION = [
-  { value: '', label: '— Sin especificar —' },
-  { value: 'adoracion', label: '🕊️ Adoración' },
-  { value: 'coro', label: '🎶 Coro / Corito' },
-  { value: 'himno', label: '📖 Himno' },
-  { value: 'infantil', label: '🧒 Infantil' },
-]
 
 const CATEGORIAS_TEMATICAS = [
   { value: '', label: '— Sin categoría (opcional) —' },
@@ -82,13 +72,12 @@ function normalizarLibro(libro?: string): string {
 export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [autenticado, setAutenticado] = useState<boolean | null>(null) // 🆕
+  const [autenticado, setAutenticado] = useState<boolean | null>(null)
   const [formData, setFormData] = useState({
     titulo: cancion.titulo || '',
     libro: normalizarLibro(cancion.libro),
     tonalidad: cancion.tonalidad || 'C',
     tempo: cancion.tempo || 'Medio',
-    tipo: cancion.tipo || '', // 🆕
     categoria: Array.isArray(cancion.temas) && cancion.temas.length > 0 ? cancion.temas[0] : '',
     estado_legal: cancion.estado_legal || 'pendiente',
     nota_legal: cancion.nota_legal || '',
@@ -97,7 +86,7 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
 
   const RUTA_DETALLE_BASE = '/canciones/'
 
-  // 🆕 Verificar sesión al montar
+  // Verificar sesión al montar
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
@@ -124,11 +113,12 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
 
     const supabase = createClient()
 
+    // ⚠️ Nota: al no incluir "tipo" en datosAGuardar,
+    // el UPDATE no toca esa columna y se conserva su valor actual en la BD.
     const { categoria, ...resto } = formData
     const datosAGuardar = {
       ...resto,
       temas: categoria === '' ? null : [categoria],
-      tipo: resto.tipo || null, // 🆕
     }
 
     const { error } = await supabase
@@ -152,7 +142,7 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
     }
   }
 
-  // 🆕 Pantalla de carga mientras verifica sesión
+  // Pantalla de carga mientras verifica sesión
   if (autenticado === null) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200 p-10 shadow-sm text-center">
@@ -161,7 +151,7 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
     )
   }
 
-  // 🆕 Pantalla si no está logueado
+  // Pantalla si no está logueado
   if (!autenticado) {
     return (
       <div className="bg-gradient-to-br from-[#0F2C4C] to-[#1B5FA8] p-10 rounded-2xl text-white text-center shadow-lg space-y-4">
@@ -182,7 +172,7 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-      {/* 🆕 Banner de contexto */}
+      {/* Banner de contexto */}
       <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-xs">
         <span>
           Estás editando <strong>"{cancion.titulo}"</strong>. Los cambios se publican al guardar.
@@ -256,23 +246,6 @@ export function EditarCancionForm({ cancion }: { cancion: Cancion }) {
             <option value="Lento">Lento</option>
             <option value="Medio">Medio</option>
             <option value="Rápido">Rápido</option>
-          </select>
-        </div>
-
-        {/* 🆕 Campo Tipo (paridad con el formulario de crear) */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Tipo de canción
-          </label>
-          <select
-            name="tipo"
-            value={formData.tipo}
-            onChange={handleChange}
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#1B5FA8] cursor-pointer"
-          >
-            {TIPOS_CANCION.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
           </select>
         </div>
 
