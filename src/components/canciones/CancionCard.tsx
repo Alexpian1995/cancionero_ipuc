@@ -1,28 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
-import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
 
-export function CancionCard({ cancion, onDelete }: { cancion: any; onDelete?: (id: string) => void }) {
-  const supabase = createClient()
+type Props = {
+  cancion: any
+  onDelete?: (id: string) => void
+  esAdmin?: boolean // 🆕 lo recibe del padre (page.tsx ya lo calcula)
+}
+
+export function CancionCard({ cancion, onDelete, esAdmin = false }: Props) {
   const router = useRouter()
-  const [isAdmin, setIsAdmin] = useState(false)
   const [estaEliminando, setEstaEliminando] = useState(false)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setIsAdmin(!!data.user)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAdmin(!!session?.user)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
 
   const handleEliminar = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -84,7 +75,8 @@ export function CancionCard({ cancion, onDelete }: { cancion: any; onDelete?: (i
           {cancion.categoria || cancion.libro || 'General'}
         </span>
 
-        {isAdmin && (
+        {/* 🆕 Ahora solo se ven si esAdmin es verdadero */}
+        {esAdmin && (
           <div className="flex shrink-0 items-center gap-1 border-l border-slate-200 pl-2">
             <Link
               href={`/admin/editar/${cancion.id}`}

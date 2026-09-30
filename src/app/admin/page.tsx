@@ -87,6 +87,7 @@ export default function AdminPage() {
   const supabase = createClient()
 
   const [autenticado, setAutenticado] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false) // 🆕 para controlar botones destructivos
   const [cargando, setCargando] = useState(true)
   const [canciones, setCanciones] = useState<Cancion[]>([])
 
@@ -104,7 +105,7 @@ export default function AdminPage() {
 
   const [paginaActual, setPaginaActual] = useState(1)
 
-  // 🔒 Guard de autenticación + validación de email admin
+  // 🔒 Guard de autenticación (solo exige sesión, NO admin)
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
@@ -112,11 +113,7 @@ export default function AdminPage() {
         return
       }
       const email = (data.user.email || '').toLowerCase()
-      if (!ADMIN_EMAILS.includes(email)) {
-        alert('No tienes permisos para acceder al panel de administración.')
-        supabase.auth.signOut().then(() => router.push('/admin/login'))
-        return
-      }
+      setIsAdmin(ADMIN_EMAILS.includes(email)) // 🆕 detectamos si es admin
       setAutenticado(true)
       cargarCanciones()
     })
@@ -183,6 +180,7 @@ export default function AdminPage() {
   }
 
   const eliminarUna = async (id: string, titulo: string) => {
+    if (!isAdmin) return // 🆕 protección extra
     if (!confirm(`¿Eliminar "${titulo}"? Esta acción no se puede deshacer.`)) return
     const { error } = await supabase.from('canciones').delete().eq('id', id)
     if (error) alert('Error al eliminar: ' + error.message)
@@ -193,6 +191,7 @@ export default function AdminPage() {
   }
 
   const asignarCategoriaLote = async () => {
+    if (!isAdmin) return // 🆕 protección extra
     if (seleccionadas.length === 0 || !categoriaLote) return
     setProcesando(true)
     const { error } = await supabase.from('canciones').update({ temas: [categoriaLote] }).in('id', seleccionadas)
@@ -206,6 +205,7 @@ export default function AdminPage() {
   }
 
   const asignarEstadoLote = async () => {
+    if (!isAdmin) return // 🆕 protección extra
     if (seleccionadas.length === 0 || !estadoLote) return
     setProcesando(true)
     const { error } = await supabase.from('canciones').update({ estado_legal: estadoLote }).in('id', seleccionadas)
@@ -219,6 +219,7 @@ export default function AdminPage() {
   }
 
   const eliminarLote = async () => {
+    if (!isAdmin) return // 🆕 protección extra
     if (seleccionadas.length === 0) return
     if (!confirm(`¿Eliminar ${seleccionadas.length} canción(es) seleccionadas?`)) return
     setProcesando(true)
@@ -240,8 +241,14 @@ export default function AdminPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold font-display text-[#0F2C4C]">Administración</h1>
-          <p className="text-xs text-slate-500">Gestioná tu catálogo de alabanzas</p>
+          <h1 className="text-2xl font-bold font-display text-[#0F2C4C]">
+            {isAdmin ? 'Administración' : 'Catálogo de Alabanzas'}
+          </h1>
+          <p className="text-xs text-slate-500">
+            {isAdmin
+              ? 'Gestioná tu catálogo de alabanzas'
+              : 'Consultá el catálogo y agregá nuevas canciones'}
+          </p>
         </div>
         <Link
           href="/admin/crear"
@@ -251,6 +258,16 @@ export default function AdminPage() {
           Nueva Canción
         </Link>
       </div>
+
+      {/* 🆕 Badge visual del modo */}
+      {!isAdmin && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-xs">
+          <ShieldCheckIcon className="w-4 h-4" />
+          <span>
+            Estás en <strong>modo lectura</strong>: podés consultar, filtrar y agregar nuevas canciones, pero no eliminar ni modificar las existentes.
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
@@ -329,7 +346,8 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {seleccionadas.length > 0 && (
+      {/* 🆕 Barra de lote SOLO para admin */}
+      {isAdmin && seleccionadas.length > 0 && (
         <div className="bg-[#0F2C4C] p-3 rounded-2xl flex flex-wrap items-center gap-2 shadow-md">
           <span className="text-white text-xs font-bold shrink-0">{seleccionadas.length} seleccionada(s)</span>
           <select value={categoriaLote} onChange={(e) => setCategoriaLote(e.target.value)}
@@ -371,14 +389,17 @@ export default function AdminPage() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="p-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={seleccionadas.length === filtradas.length && filtradas.length > 0}
-                        onChange={toggleTodas}
-                        className="accent-[#1B5FA8]"
-                      />
-                    </th>
+                    {/* 🆕 Checkbox de selección solo para admin */}
+                    {isAdmin && (
+                      <th className="p-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={seleccionadas.length === filtradas.length && filtradas.length > 0}
+                          onChange={toggleTodas}
+                          className="accent-[#1B5FA8]"
+                        />
+                      </th>
+                    )}
                     <th className="p-3 font-bold text-slate-600">Título</th>
                     <th className="p-3 font-bold text-slate-600">Tono</th>
                     <th className="p-3 font-bold text-slate-600">Categoría</th>
@@ -393,9 +414,12 @@ export default function AdminPage() {
                     const incompleta = !c.tempo || !cat
                     return (
                       <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="p-3">
-                          <input type="checkbox" checked={seleccionadas.includes(c.id)} onChange={() => toggleSeleccion(c.id)} className="accent-[#1B5FA8]" />
-                        </td>
+                        {/* 🆕 Checkbox individual solo para admin */}
+                        {isAdmin && (
+                          <td className="p-3">
+                            <input type="checkbox" checked={seleccionadas.includes(c.id)} onChange={() => toggleSeleccion(c.id)} className="accent-[#1B5FA8]" />
+                          </td>
+                        )}
                         <td className="p-3 font-semibold text-slate-800">
                           {c.titulo}
                           {incompleta && (
@@ -419,12 +443,16 @@ export default function AdminPage() {
                         </td>
                         <td className="p-3">
                           <div className="flex items-center justify-end gap-1">
+                            {/* Editar: visible para todos (aunque no-admin puede que no tenga permiso RLS, lo dejamos visible) */}
                             <Link href={`/admin/editar/${c.id}`} className="p-1.5 text-slate-400 hover:text-[#1B5FA8] hover:bg-slate-100 rounded-lg" title="Editar">
                               <PencilSquareIcon className="w-4 h-4" />
                             </Link>
-                            <button onClick={() => eliminarUna(c.id, c.titulo)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Eliminar">
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
+                            {/* 🆕 Eliminar: SOLO para admin */}
+                            {isAdmin && (
+                              <button onClick={() => eliminarUna(c.id, c.titulo)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Eliminar">
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

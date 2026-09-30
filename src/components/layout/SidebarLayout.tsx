@@ -28,8 +28,13 @@ const mainNavigation = [
   { name: 'Armador de Popurrís', href: '/popurri', icon: SparklesIcon, badge: 'IA' },
 ]
 
-const adminNavigation = [
+// 🆕 Para cualquier usuario logueado
+const userNavigation = [
   { name: 'Añadir Canción', href: '/admin/crear', icon: PlusCircleIcon },
+]
+
+// Solo para admin
+const adminNavigation = [
   { name: 'Administrar', href: '/admin', icon: AdjustmentsVerticalIcon },
   { name: 'Usuarios', href: '/admin/usuarios', icon: UsersIcon },
 ]
@@ -56,6 +61,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           .single()
 
         setIsAdmin(!!admin)
+      } else {
+        setIsAdmin(false)
       }
     }
 
@@ -161,6 +168,35 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
+          {/* 🆕 Sección para cualquier usuario logueado */}
+          {user && (
+            <div className="pt-4 border-t border-white/10">
+              <p className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">
+                Mi Ministerio
+              </p>
+              <nav className="space-y-1">
+                {userNavigation.map((item) => {
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
+                        isActive
+                          ? 'bg-white/15 text-white font-semibold'
+                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span>{item.name}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+            </div>
+          )}
+
+          {/* Sección exclusiva de admin */}
           {isAdmin && (
             <div className="pt-4 border-t border-white/10">
               <p className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">
@@ -173,10 +209,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${isActive
+                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
+                        isActive
                           ? 'bg-white/15 text-white font-semibold'
                           : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                        }`}
+                      }`}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.name}</span>

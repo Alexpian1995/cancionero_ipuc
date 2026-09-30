@@ -17,21 +17,34 @@ export default async function Home({
   const paginaActual = Math.max(1, parseInt(page || '1', 10))
   const supabase = await createClient()
 
+  // 🆕 Verificar si el usuario actual es admin
+  const { data: { user } } = await supabase.auth.getUser()
+  let esAdmin = false
+  if (user) {
+    const { data: adminCheck } = await supabase
+      .from('administradores')
+      .select('rol')
+      .eq('id', user.id)
+      .eq('rol', 'ADMIN')
+      .single()
+    esAdmin = !!adminCheck
+  }
+
   // Conteo total general para el panel
   const { data: todas } = await supabase.from('canciones').select('libro, tipo')
 
-  const normalizar = (str?: string | null) => 
+  const normalizar = (str?: string | null) =>
     str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : ""
 
   const contarLluvias = todas?.filter((c) => normalizar(c.libro).includes('lluvias')).length ?? 0
   const contarManantial = todas?.filter((c) => normalizar(c.libro).includes('manantial')).length ?? 0
-  const contarCoros = todas?.filter((c) => 
-    normalizar(c.libro).includes('coros') || 
-    c.tipo === 'coro' || 
+  const contarCoros = todas?.filter((c) =>
+    normalizar(c.libro).includes('coros') ||
+    c.tipo === 'coro' ||
     c.tipo === 'adoracion'
   ).length ?? 0
 
-  // Paginación en Supabase con `.range()` y `{ count: 'exact' }`
+  // Paginación en Supabase
   const desde = (paginaActual - 1) * ELEMENTOS_POR_PAGINA
   const hasta = desde + ELEMENTOS_POR_PAGINA - 1
 
@@ -45,7 +58,6 @@ export default async function Home({
     query = query.textSearch('busqueda', términos, { config: 'spanish' })
   }
 
-  // Aplicar rango para la página activa
   query = query.range(desde, hasta)
 
   const { data: canciones, count, error } = await query
@@ -57,7 +69,6 @@ export default async function Home({
     return <div className="p-6 bg-red-50 text-red-600 rounded-xl">Error cargando canciones: {error.message}</div>
   }
 
-  // Helper para preservar las búsquedas al cambiar de página
   const crearUrlPagina = (nuevaPagina: number) => {
     const params = new URLSearchParams()
     if (q) params.set('q', q)
@@ -77,7 +88,6 @@ export default async function Home({
             Encuentra tonalidades, tempos y letras al instante durante el culto o ensayo.
           </p>
 
-          {/* Buscador Contextual */}
           <form method="GET" className="mt-6 relative flex items-center">
             <MagnifyingGlassIcon className="absolute left-4 h-5 w-5 text-gray-400" />
             <input
@@ -147,7 +157,8 @@ export default async function Home({
           {canciones && canciones.length > 0 ? (
             canciones.map((c) => (
               <li key={c.id}>
-                <CancionCard cancion={c} />
+                {/* 🆕 Pasar esAdmin como prop */}
+                <CancionCard cancion={c} esAdmin={esAdmin} />
               </li>
             ))
           ) : (
@@ -157,7 +168,7 @@ export default async function Home({
           )}
         </ul>
 
-        {/* Controles de Paginación */}
+        {/* Paginación */}
         {totalPaginas > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 pt-5 mt-6 text-xs text-slate-500 gap-3">
             <div>
