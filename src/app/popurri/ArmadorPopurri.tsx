@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { QRCodeSVG } from 'qrcode.react' // 🆕
 import {
   PlusIcon,
   TrashIcon,
@@ -12,7 +13,7 @@ import {
   MusicalNoteIcon,
   SparklesIcon,
   DocumentDuplicateIcon,
-  DocumentArrowDownIcon, // 🆕 Exportar PDF
+  DocumentArrowDownIcon,
   FunnelIcon,
   ExclamationTriangleIcon,
   LightBulbIcon,
@@ -24,10 +25,11 @@ import {
   LockClosedIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  QrCodeIcon, // 🆕
 } from '@heroicons/react/24/outline'
 
 import PopurriDetalleView from './PopurriDetalleView'
-import { exportarPopurriAPDF } from '@/lib/pdfExport' // 🆕
+import { exportarPopurriAPDF } from '@/lib/pdfExport'
 import {
   guardarOActualizarPopurri,
   obtenerEstadoSuscripcion,
@@ -167,11 +169,16 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   const [autenticado, setAutenticado] = useState<boolean | null>(null)
   const [paginaActual, setPaginaActual] = useState(1)
 
-  // 🆕 Estados para exportar a PDF
+  // Estados para exportar a PDF
   const [modalExportar, setModalExportar] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [modoPDF, setModoPDF] = useState<'musico' | 'cantante'>('musico')
   const [orientacionPDF, setOrientacionPDF] = useState<'portrait' | 'landscape'>('portrait')
+
+  // 🆕 Estados para compartir con QR
+  const [modalCompartir, setModalCompartir] = useState(false)
+  const [linkCompartir, setLinkCompartir] = useState('')
+  const [codigoSesionActual, setCodigoSesionActual] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -214,6 +221,8 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     setNombrePopurri(popurriResumen.titulo || 'Popurrí sin título')
     setLiderId(popurriResumen.lider_id || popurriResumen.liderId || '')
     setNombreLiderManual(popurriResumen.nombre_lider_manual || popurriResumen.nombreLider || '')
+    // 🆕 Cargar el código de sesión del popurrí guardado
+    setCodigoSesionActual(popurriResumen.codigo_sesion || '')
 
     const cancionesCargadas = (popurriResumen.canciones || popurriResumen.popurri_canciones || []).map((item: any) => {
       const infoCancion = item.canciones || {}
@@ -248,6 +257,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         setPopurriIdActual(undefined)
         setNombrePopurri('Nuevo Popurrí / Medley')
         setSeleccionadas([])
+        setCodigoSesionActual('') // 🆕 resetear código
       }
     } else {
       alert('Error al eliminar: ' + (res.error || 'desconocido'))
@@ -463,6 +473,11 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         setPopurriIdActual(res.popurriId)
       }
 
+      // 🆕 Guardar el código de sesión retornado
+      if (res.codigoSesion) {
+        setCodigoSesionActual(res.codigoSesion)
+      }
+
       setGuardadoExitoso(true)
       setTimeout(() => setGuardadoExitoso(false), 3000)
     } catch (err: any) {
@@ -473,7 +488,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     }
   }
 
-  // 🆕 EXPORTAR A PDF
+  // EXPORTAR A PDF
   const handleExportarPDF = async () => {
     if (seleccionadas.length === 0) {
       alert('Agregá al menos una canción al popurrí para exportar.')
@@ -514,6 +529,31 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     } finally {
       setExportando(false)
     }
+  }
+
+  // 🆕 COMPARTIR CON QR
+  const abrirCompartir = () => {
+    if (!codigoSesionActual) {
+      alert('Primero guardá el popurrí para generar su código QR.')
+      return
+    }
+    setLinkCompartir(`${window.location.origin}/p/${codigoSesionActual}`)
+    setModalCompartir(true)
+  }
+
+  const copiarLink = () => {
+    navigator.clipboard.writeText(linkCompartir)
+    alert('¡Link copiado al portapapeles! 🎉')
+  }
+
+  const compartirWhatsApp = () => {
+    const texto = `🎵🙏 Popurrí de adoración "${nombrePopurri}" — Código ${codigoSesionActual}. Escaneá o entrá acá: ${linkCompartir}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
+  }
+
+  const copiarCodigo = () => {
+    navigator.clipboard.writeText(codigoSesionActual)
+    alert(`Código ${codigoSesionActual} copiado 🎉`)
   }
 
   const copiarResumen = () => {
@@ -629,19 +669,42 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                   className="p-4 rounded-xl border border-slate-200 hover:border-[#1B5FA8] hover:shadow-md cursor-pointer transition-all bg-slate-50 hover:bg-white space-y-2"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-bold text-slate-800 text-sm">{item.titulo}</h4>
-                    <button
-                      onClick={(e) => handleEliminarPopurri(e, item.id, item.titulo)}
-                      disabled={eliminandoPopurri === item.id}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 shrink-0"
-                      title="Eliminar popurrí"
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
+                    <h4 className="font-bold text-slate-800 text-sm min-w-0 flex-1 truncate">{item.titulo}</h4>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      {/* 🆕 Botón QR para compartir desde biblioteca */}
+                      {item.codigo_sesion && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCodigoSesionActual(item.codigo_sesion)
+                            setLinkCompartir(`${window.location.origin}/p/${item.codigo_sesion}`)
+                            setModalCompartir(true)
+                          }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          title="Compartir con QR"
+                        >
+                          <QrCodeIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => handleEliminarPopurri(e, item.id, item.titulo)}
+                        disabled={eliminandoPopurri === item.id}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        title="Eliminar popurrí"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {(item.nombre_lider_manual || item.nombreLider) && (
                     <p className="text-[11px] text-slate-500">👤 Líder: {item.nombre_lider_manual || item.nombreLider}</p>
+                  )}
+
+                  {item.codigo_sesion && (
+                    <p className="text-[10px] text-[#1B5FA8] font-mono font-bold">
+                      Código: {item.codigo_sesion}
+                    </p>
                   )}
 
                   <div className="flex items-center justify-between pt-2">
@@ -940,13 +1003,21 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                       Ver Modo En Vivo
                     </button>
 
-                    {/* 🆕 BOTÓN EXPORTAR PDF */}
                     <button
                       onClick={() => setModalExportar(true)}
                       className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-700 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-sm"
                     >
                       <DocumentArrowDownIcon className="w-4 h-4" />
                       Exportar PDF
+                    </button>
+
+                    {/* 🆕 BOTÓN COMPARTIR CON QR */}
+                    <button
+                      onClick={abrirCompartir}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-colors shadow-sm"
+                    >
+                      <QrCodeIcon className="w-4 h-4" />
+                      Compartir
                     </button>
 
                     <button
@@ -1079,7 +1150,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
       )}
 
       {/* ═══════════════════════════════════════════════════ */}
-      {/* 🆕 MODAL DE EXPORTAR A PDF                          */}
+      {/* MODAL DE EXPORTAR A PDF                          */}
       {/* ═══════════════════════════════════════════════════ */}
       {modalExportar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -1101,7 +1172,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
               </button>
             </div>
 
-            {/* Modo */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Modo de exportación
@@ -1143,7 +1213,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
               </div>
             </div>
 
-            {/* Orientación */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Orientación de página
@@ -1194,7 +1263,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
               </p>
             </div>
 
-            {/* Preview */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1">
               <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Resumen</p>
               <div className="text-xs text-slate-700 space-y-0.5">
@@ -1204,7 +1272,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
               </div>
             </div>
 
-            {/* Botones */}
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setModalExportar(false)}
@@ -1234,6 +1301,69 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* 🆕 MODAL COMPARTIR CON QR                        */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {modalCompartir && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-center">
+            <div>
+              <h3 className="font-bold text-[#0F2C4C] text-lg">Compartir popurrí</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Quien escanee el código verá el popurrí completo
+                <strong> solo si tiene cuenta con plan activo</strong>.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <div className="bg-white p-3 rounded-xl border-2 border-slate-200">
+                <QRCodeSVG value={linkCompartir} size={180} level="M" />
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+              <p className="text-[10px] text-slate-400 uppercase font-bold">Código de sesión</p>
+              <button
+                onClick={copiarCodigo}
+                className="text-lg font-bold tracking-widest text-[#1B5FA8] hover:underline cursor-pointer"
+                title="Click para copiar"
+              >
+                {codigoSesionActual}
+              </button>
+            </div>
+
+            <input
+              readOnly
+              value={linkCompartir}
+              onFocus={(e) => e.target.select()}
+              className="w-full text-[10px] text-slate-500 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+            />
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={copiarLink}
+                className="px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200"
+              >
+                📋 Copiar link
+              </button>
+              <button
+                onClick={compartirWhatsApp}
+                className="px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700"
+              >
+                💬 WhatsApp
+              </button>
+            </div>
+
+            <button
+              onClick={() => setModalCompartir(false)}
+              className="w-full px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700"
+            >
+              Cerrar
+            </button>
           </div>
         </div>
       )}

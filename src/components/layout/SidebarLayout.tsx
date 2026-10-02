@@ -18,6 +18,9 @@ import {
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  InformationCircleIcon,
+  DocumentTextIcon,
+  PlayIcon,
 } from '@heroicons/react/24/outline'
 
 const mainNavigation = [
@@ -26,6 +29,13 @@ const mainNavigation = [
   { name: 'Manantial de Inspiración', href: '/manantial-de-inspiracion', icon: BookOpenIcon },
   { name: 'Coros y Adoración', href: '/coros', icon: MusicalNoteIcon },
   { name: 'Armador de Popurrís', href: '/popurri', icon: SparklesIcon, badge: 'IA' },
+]
+
+// 🆕 Información pública (visible para todos, con o sin sesión)
+const infoNavigation = [
+  { name: 'Acerca de la App', href: '/acerca', icon: InformationCircleIcon },
+  { name: 'Demo en Vivo', href: '/demo', icon: PlayIcon, badge: 'Probar' },
+  { name: 'Políticas Legales', href: '/legal', icon: DocumentTextIcon },
 ]
 
 // 🆕 Para cualquier usuario logueado
@@ -168,6 +178,39 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
+          {/* 🆕 Sección pública de información (visible para todos) */}
+          <div className="mb-6 pt-4 border-t border-white/10">
+            <p className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">
+              Información
+            </p>
+            <nav className="space-y-1">
+              {infoNavigation.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center justify-between px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
+                      isActive
+                        ? 'bg-[#D9A544] text-[#0F2C4C] font-semibold shadow-xs'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="bg-amber-400/20 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </nav>
+          </div>
+
           {/* 🆕 Sección para cualquier usuario logueado */}
           {user && (
             <div className="pt-4 border-t border-white/10">
@@ -248,13 +291,21 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           ) : (
-            <Link
-              href="/admin/login"
-              className="flex items-center justify-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold py-2.5 px-3 rounded-xl transition-all"
-            >
-              <ArrowLeftOnRectangleIcon className="h-4 w-4 text-[#D9A544]" />
-              Acceso Directores
-            </Link>
+            <div className="space-y-2">
+              <Link
+                href="/admin/login"
+                className="flex items-center justify-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold py-2.5 px-3 rounded-xl transition-all"
+              >
+                <ArrowLeftOnRectangleIcon className="h-4 w-4 text-[#D9A544]" />
+                Acceso Directores
+              </Link>
+              <Link
+                href="/registro"
+                className="flex items-center justify-center gap-2 w-full bg-[#D9A544] hover:bg-[#e8b95f] text-[#0F2C4C] text-xs font-bold py-2.5 px-3 rounded-xl transition-all"
+              >
+                Crear cuenta gratis
+              </Link>
+            </div>
           )}
 
           <div className="px-1 text-slate-500">

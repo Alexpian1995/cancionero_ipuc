@@ -331,6 +331,7 @@ export async function eliminarPopurri(
 }
 
 // 5. ESTADO DE SUSCRIPCIÓN
+// 5. ESTADO DE SUSCRIPCIÓN (con exención para admin)
 export async function obtenerEstadoSuscripcion() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -340,18 +341,41 @@ export async function obtenerEstadoSuscripcion() {
       autenticado: false,
       tieneSuscripcionValida: false,
       usuarioId: null,
-      iglesiaId: null
+      iglesiaId: null,
     }
   }
 
-  // Consultar la iglesia donde este usuario es líder
+  // 🆕 Los administradores SIEMPRE tienen acceso completo, sin chequeo de suscripción
+  const { data: adminRow } = await supabase
+    .from('administradores')
+    .select('rol')
+    .eq('id', user.id)
+    .eq('rol', 'ADMIN')
+    .maybeSingle()
+
+  if (adminRow) {
+    // Buscamos su iglesia solo para tener el iglesiaId (si la tuviera), sin bloquear
+    const { data: iglesia } = await supabase
+      .from('iglesias')
+      .select('id')
+      .eq('lider_id', user.id)
+      .maybeSingle()
+
+    return {
+      autenticado: true,
+      tieneSuscripcionValida: true, // ✅ admin nunca expira
+      usuarioId: user.id,
+      iglesiaId: iglesia?.id || null,
+    }
+  }
+
+  // ─── Usuarios normales: chequeo de suscripción real ───
   const { data: iglesia } = await supabase
     .from('iglesias')
     .select('id, estado_suscripcion, fin_suscripcion')
     .eq('lider_id', user.id)
     .maybeSingle()
 
-  // Verificar si la suscripción está activa (trial o pro)
   let tieneSuscripcionValida = false
   if (iglesia) {
     if (iglesia.estado_suscripcion === 'active') {
@@ -366,6 +390,6 @@ export async function obtenerEstadoSuscripcion() {
     autenticado: true,
     tieneSuscripcionValida,
     usuarioId: user.id,
-    iglesiaId: iglesia?.id || null
+    iglesiaId: iglesia?.id || null,
   }
 }
