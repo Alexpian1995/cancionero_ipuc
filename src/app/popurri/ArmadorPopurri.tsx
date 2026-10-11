@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { QRCodeSVG } from 'qrcode.react' // 🆕
+import { QRCodeSVG } from 'qrcode.react'
 import {
   PlusIcon,
   TrashIcon,
@@ -25,7 +25,7 @@ import {
   LockClosedIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  QrCodeIcon, // 🆕
+  QrCodeIcon,
 } from '@heroicons/react/24/outline'
 
 import PopurriDetalleView from './PopurriDetalleView'
@@ -175,10 +175,13 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   const [modoPDF, setModoPDF] = useState<'musico' | 'cantante'>('musico')
   const [orientacionPDF, setOrientacionPDF] = useState<'portrait' | 'landscape'>('portrait')
 
-  // 🆕 Estados para compartir con QR
+  // Estados para compartir con QR
   const [modalCompartir, setModalCompartir] = useState(false)
   const [linkCompartir, setLinkCompartir] = useState('')
   const [codigoSesionActual, setCodigoSesionActual] = useState('')
+
+  // 🆕 Ref para scroll al panel del popurrí desde el botón flotante móvil
+  const panelPopurriRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -221,7 +224,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     setNombrePopurri(popurriResumen.titulo || 'Popurrí sin título')
     setLiderId(popurriResumen.lider_id || popurriResumen.liderId || '')
     setNombreLiderManual(popurriResumen.nombre_lider_manual || popurriResumen.nombreLider || '')
-    // 🆕 Cargar el código de sesión del popurrí guardado
     setCodigoSesionActual(popurriResumen.codigo_sesion || '')
 
     const cancionesCargadas = (popurriResumen.canciones || popurriResumen.popurri_canciones || []).map((item: any) => {
@@ -257,7 +259,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         setPopurriIdActual(undefined)
         setNombrePopurri('Nuevo Popurrí / Medley')
         setSeleccionadas([])
-        setCodigoSesionActual('') // 🆕 resetear código
+        setCodigoSesionActual('')
       }
     } else {
       alert('Error al eliminar: ' + (res.error || 'desconocido'))
@@ -473,7 +475,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         setPopurriIdActual(res.popurriId)
       }
 
-      // 🆕 Guardar el código de sesión retornado
       if (res.codigoSesion) {
         setCodigoSesionActual(res.codigoSesion)
       }
@@ -488,7 +489,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     }
   }
 
-  // EXPORTAR A PDF
   const handleExportarPDF = async () => {
     if (seleccionadas.length === 0) {
       alert('Agregá al menos una canción al popurrí para exportar.')
@@ -531,7 +531,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
     }
   }
 
-  // 🆕 COMPARTIR CON QR
   const abrirCompartir = () => {
     if (!codigoSesionActual) {
       alert('Primero guardá el popurrí para generar su código QR.')
@@ -671,7 +670,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                   <div className="flex items-start justify-between gap-2">
                     <h4 className="font-bold text-slate-800 text-sm min-w-0 flex-1 truncate">{item.titulo}</h4>
                     <div className="flex items-center gap-0.5 shrink-0">
-                      {/* 🆕 Botón QR para compartir desde biblioteca */}
                       {item.codigo_sesion && (
                         <button
                           onClick={(e) => {
@@ -722,7 +720,8 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-5 space-y-4">
+          {/* 🆕 Columna izquierda: IA + Catálogo (orden 2 en móvil, 1 en desktop) */}
+          <div className="lg:col-span-5 space-y-4 order-2 lg:order-1">
             {autenticado === false ? (
               <div className="bg-gradient-to-br from-[#0F2C4C] to-[#1B5FA8] p-6 rounded-2xl text-white space-y-3 shadow-md text-center">
                 <LockClosedIcon className="w-9 h-9 mx-auto text-[#D9A544]" />
@@ -968,7 +967,8 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
             </div>
           </div>
 
-          <div className="lg:col-span-7 space-y-4">
+          {/* 🆕 Columna derecha: Popurrí (orden 1 en móvil, 2 en desktop) */}
+          <div ref={panelPopurriRef} className="lg:col-span-7 space-y-4 order-1 lg:order-2 scroll-mt-4">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <input
@@ -1011,7 +1011,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                       Exportar PDF
                     </button>
 
-                    {/* 🆕 BOTÓN COMPARTIR CON QR */}
                     <button
                       onClick={abrirCompartir}
                       className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-colors shadow-sm"
@@ -1146,6 +1145,21 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 🆕 Barra flotante móvil: acceso rápido al popurrí desde el catálogo */}
+      {!vistaBiblioteca && seleccionadas.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 lg:hidden">
+          <button
+            onClick={() =>
+              panelPopurriRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0F2C4C] text-white text-xs font-bold shadow-lg border border-white/10"
+          >
+            <MusicalNoteIcon className="w-4 h-4 text-[#D9A544]" />
+            {seleccionadas.length} en el popurrí · Ver ➔
+          </button>
         </div>
       )}
 
@@ -1306,7 +1320,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
       )}
 
       {/* ═══════════════════════════════════════════════════ */}
-      {/* 🆕 MODAL COMPARTIR CON QR                        */}
+      {/* MODAL COMPARTIR CON QR                        */}
       {/* ═══════════════════════════════════════════════════ */}
       {modalCompartir && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
