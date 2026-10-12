@@ -82,7 +82,7 @@ export default async function Home({
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0F2C4C] via-[#153a63] to-[#1B5FA8] p-6 sm:p-10 text-white shadow-xl">
         <div className="relative z-10 max-w-2xl">
           <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
-            Asistente de Alabanza IPUC
+            Asistente de Alabanza 
           </h1>
           <p className="mt-2 text-slate-200 text-sm sm:text-base">
             Encuentra tonalidades, tempos y letras al instante durante el culto o ensayo.

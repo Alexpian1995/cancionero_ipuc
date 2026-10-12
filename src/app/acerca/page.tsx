@@ -79,13 +79,13 @@ export default function AcercaPage() {
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2C4C] via-[#153a63] to-[#1B5FA8] p-8 sm:p-12 text-white shadow-xl">
         <div className="relative z-10 space-y-5">
           <span className="inline-block px-3 py-1 bg-[#D9A544] text-[#0F2C4C] text-[10px] font-bold uppercase tracking-widest rounded-full">
-            Asistente de Alabanza IPUC
+            Asistente de Alabanza 
           </span>
           <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
             Todo tu cancionero, listo para el culto
           </h1>
           <p className="text-slate-200 text-sm sm:text-base max-w-2xl leading-relaxed">
-            Cancionero IPUC reúne los himnarios de la iglesia en una sola plataforma: buscá
+            AlabaKey reúne los himnarios de la iglesia en una sola plataforma: buscá
             alabanzas, armá popurrís con ayuda de IA, transponé tonos, proyectá en vivo y
             llevate todo en PDF — aunque no haya internet en el templo.
           </p>
@@ -227,7 +227,7 @@ export default function AcercaPage() {
           ¿Listo para dirigir tu próxima alabanza sin papeles?
         </h2>
         <p className="text-xs text-slate-500 max-w-md mx-auto">
-          Unite a las congregaciones que ya ensayan y adoran con Cancionero IPUC.
+          Unite a las congregaciones que ya ensayan y adoran con AlabaKey.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link

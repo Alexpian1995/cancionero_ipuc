@@ -169,18 +169,15 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
   const [autenticado, setAutenticado] = useState<boolean | null>(null)
   const [paginaActual, setPaginaActual] = useState(1)
 
-  // Estados para exportar a PDF
   const [modalExportar, setModalExportar] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [modoPDF, setModoPDF] = useState<'musico' | 'cantante'>('musico')
   const [orientacionPDF, setOrientacionPDF] = useState<'portrait' | 'landscape'>('portrait')
 
-  // Estados para compartir con QR
   const [modalCompartir, setModalCompartir] = useState(false)
   const [linkCompartir, setLinkCompartir] = useState('')
   const [codigoSesionActual, setCodigoSesionActual] = useState('')
 
-  // 🆕 Ref para scroll al panel del popurrí desde el botón flotante móvil
   const panelPopurriRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -602,7 +599,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
 
     texto += `${DIV}\n\n`
     texto += `🙏 *¡Bendiciones en el ministerio!*\n`
-    texto += `📲 _Generado con Cancionero IPUC_`
+    texto += `📲 _Generado con AlabaKey_`
 
     navigator.clipboard.writeText(texto)
     alert('¡Esquema de popurrí copiado al portapapeles! 🎉')
@@ -720,7 +717,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* 🆕 Columna izquierda: IA + Catálogo (orden 2 en móvil, 1 en desktop) */}
           <div className="lg:col-span-5 space-y-4 order-2 lg:order-1">
             {autenticado === false ? (
               <div className="bg-gradient-to-br from-[#0F2C4C] to-[#1B5FA8] p-6 rounded-2xl text-white space-y-3 shadow-md text-center">
@@ -788,7 +784,7 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
                             <span className="text-[#D9A544] font-bold">•</span>
                             <div className="min-w-0">
                               <span className="font-semibold text-white">"{c.titulo}"</span>
-                              <span className="text-slate-300"> — {c.libro || 'Cancionero IPUC'}</span>
+                              <span className="text-slate-300"> — {c.libro || 'AlabaKey'}</span>
                               {c.razon && (
                                 <p className="text-slate-300 italic text-[10px]">{c.razon}</p>
                               )}
@@ -967,7 +963,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
             </div>
           </div>
 
-          {/* 🆕 Columna derecha: Popurrí (orden 1 en móvil, 2 en desktop) */}
           <div ref={panelPopurriRef} className="lg:col-span-7 space-y-4 order-1 lg:order-2 scroll-mt-4">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -1148,7 +1143,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         </div>
       )}
 
-      {/* 🆕 Barra flotante móvil: acceso rápido al popurrí desde el catálogo */}
       {!vistaBiblioteca && seleccionadas.length > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 lg:hidden">
           <button
@@ -1163,9 +1157,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════ */}
-      {/* MODAL DE EXPORTAR A PDF                          */}
-      {/* ═══════════════════════════════════════════════════ */}
       {modalExportar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 space-y-5">
@@ -1319,9 +1310,6 @@ export function ArmadorPopurri({ cancionesDisponibles, lideresDisponibles = [], 
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════ */}
-      {/* MODAL COMPARTIR CON QR                        */}
-      {/* ═══════════════════════════════════════════════════ */}
       {modalCompartir && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 space-y-4 text-center">

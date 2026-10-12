@@ -5,7 +5,7 @@ const SECCIONES = [
     titulo: '1. Propiedad de las letras y acordes',
     contenido: [
       'Las letras y acordes pertenecen a sus respectivos autores y se utilizan con autorización o bajo dominio público, exclusivamente para ensayo y culto de las congregaciones.',
-      'Cancionero IPUC no reclama propiedad alguna sobre las obras musicales incluidas en el catálogo. Cada canción indica su estado legal (dominio público, permiso escrito, licencia o pendiente de permiso).',
+      'AlabaKey no reclama propiedad alguna sobre las obras musicales incluidas en el catálogo. Cada canción indica su estado legal (dominio público, permiso escrito, licencia o pendiente de permiso).',
     ],
   },
   {

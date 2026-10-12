@@ -16,7 +16,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Cancionero IA — IPUC',
+  title: 'Cancionero IA',
   description: 'Cancionero digital para músicos y directores de alabanza',
 }
 

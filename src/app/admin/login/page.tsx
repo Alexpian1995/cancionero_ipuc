@@ -122,15 +122,16 @@ export default function AdminLoginPage() {
           Volver al Inicio
         </Link>
 
+        {/* ✅ Encabezado con logo, título y subtítulo TODOS dentro del mismo div text-center */}
         <div className="text-center">
           <Image
-            src="/logoipuc.png"
-            alt="IPUC"
-            width={48}
-            height={48}
-            className="mx-auto object-contain"
+            src="/AlabaKey.png"
+            alt="AlabaKey"
+            width={80}
+            height={80}
+            className="mx-auto object-contain rounded-2xl shadow-lg"
           />
-          <h2 className="mt-3 font-display text-2xl font-bold text-[#0F2C4C]">
+          <h2 className="mt-4 font-display text-2xl font-bold text-[#0F2C4C]">
             Acceso Administrador
           </h2>
           <p className="mt-1 text-xs text-slate-500">

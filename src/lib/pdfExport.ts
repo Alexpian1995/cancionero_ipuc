@@ -92,7 +92,7 @@ export async function exportarPopurriAPDF(opciones: OpcionesExport) {
     pdf.setFontSize(8)
     pdf.setTextColor(GRIS[0], GRIS[1], GRIS[2])
     pdf.setFont('helvetica', 'normal')
-    pdf.text(`Cancionero IPUC · ${titulo}`, marginX, pageHeight - 8)
+    pdf.text(`AlabaKey · ${titulo}`, marginX, pageHeight - 8)
     pdf.text(`Página ${numPagina}`, pageWidth - marginX, pageHeight - 8, { align: 'right' })
   }
 

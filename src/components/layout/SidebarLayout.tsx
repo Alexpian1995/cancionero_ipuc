@@ -31,19 +31,16 @@ const mainNavigation = [
   { name: 'Armador de Popurrís', href: '/popurri', icon: SparklesIcon, badge: 'IA' },
 ]
 
-// 🆕 Información pública (visible para todos, con o sin sesión)
 const infoNavigation = [
   { name: 'Acerca de la App', href: '/acerca', icon: InformationCircleIcon },
   { name: 'Demo en Vivo', href: '/demo', icon: PlayIcon, badge: 'Probar' },
   { name: 'Políticas Legales', href: '/legal', icon: DocumentTextIcon },
 ]
 
-// 🆕 Para cualquier usuario logueado
 const userNavigation = [
   { name: 'Añadir Canción', href: '/admin/crear', icon: PlusCircleIcon },
 ]
 
-// Solo para admin
 const adminNavigation = [
   { name: 'Administrar', href: '/admin', icon: AdjustmentsVerticalIcon },
   { name: 'Usuarios', href: '/admin/usuarios', icon: UsersIcon },
@@ -127,15 +124,15 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between px-2 mb-8 mt-1">
             <div className="flex items-center gap-3">
               <Image
-                src="/logoipuc.png"
-                alt="Cancionero IPUC"
-                width={32}
-                height={32}
-                className="object-contain"
+                src="/AlabaKey.png"
+                alt="AlabaKey"
+                width={40}
+                height={40}
+                className="object-contain rounded-xl shadow-md"
               />
               <div>
-                <h1 className="font-bold text-white text-sm leading-tight">Cancionero IPUC</h1>
-                <p className="text-[11px] text-[#D9A544] font-medium">Asistente de Alabanza</p>
+                <h1 className="font-bold text-white text-sm leading-tight">AlabaKey</h1>
+                <p className="text-[11px] text-[#D9A544] font-medium">Letras · Acordes · Popurrís</p>
               </div>
             </div>
 
@@ -159,8 +156,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     key={item.name}
                     href={item.href}
                     className={`flex items-center justify-between px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${isActive
-                        ? 'bg-[#D9A544] text-[#0F2C4C] font-semibold shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      ? 'bg-[#D9A544] text-[#0F2C4C] font-semibold shadow-xs'
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -178,7 +175,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
-          {/* 🆕 Sección pública de información (visible para todos) */}
           <div className="mb-6 pt-4 border-t border-white/10">
             <p className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">
               Información
@@ -190,11 +186,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center justify-between px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
-                      isActive
-                        ? 'bg-[#D9A544] text-[#0F2C4C] font-semibold shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                    }`}
+                    className={`flex items-center justify-between px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${isActive
+                      ? 'bg-[#D9A544] text-[#0F2C4C] font-semibold shadow-xs'
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <item.icon className="h-4 w-4 shrink-0" />
@@ -211,7 +206,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
-          {/* 🆕 Sección para cualquier usuario logueado */}
           {user && (
             <div className="pt-4 border-t border-white/10">
               <p className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">
@@ -224,11 +218,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
-                        isActive
-                          ? 'bg-white/15 text-white font-semibold'
-                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                      }`}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${isActive
+                        ? 'bg-white/15 text-white font-semibold'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        }`}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.name}</span>
@@ -239,7 +232,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {/* Sección exclusiva de admin */}
           {isAdmin && (
             <div className="pt-4 border-t border-white/10">
               <p className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">
@@ -252,11 +244,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
-                        isActive
-                          ? 'bg-white/15 text-white font-semibold'
-                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                      }`}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${isActive
+                        ? 'bg-white/15 text-white font-semibold'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        }`}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.name}</span>
@@ -309,7 +300,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           )}
 
           <div className="px-1 text-slate-500">
-            <p className="text-[11px] font-semibold text-slate-400">Cancionero IPUC</p>
+            <p className="text-[11px] font-semibold text-slate-400">AlabaKey</p>
             <p className="text-[10px]">Versión 1.0 (2026)</p>
           </div>
         </div>
@@ -345,7 +336,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </p>
               <p className="text-[11px] text-slate-500">
                 Si sos titular de derechos de alguna obra y deseás solicitar su retiro, escribinos a{' '}
-                <a href="mailto:derechos@cancionero-ipuc.com" className="text-[#1B5FA8] font-semibold underline">
+                <a href="mailto:alexanderalzate53@gmail.com" className="text-[#1B5FA8] font-semibold underline">
                   alexanderalzate53@gmail.com
                 </a>{' '}
                 y la removeremos en un plazo máximo de 48 horas.
