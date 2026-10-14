@@ -290,12 +290,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 <ArrowLeftOnRectangleIcon className="h-4 w-4 text-[#D9A544]" />
                 Acceso Directores
               </Link>
-              <Link
-                href="/registro"
-                className="flex items-center justify-center gap-2 w-full bg-[#D9A544] hover:bg-[#e8b95f] text-[#0F2C4C] text-xs font-bold py-2.5 px-3 rounded-xl transition-all"
-              >
-                Crear cuenta gratis
-              </Link>
+              
             </div>
           )}
 

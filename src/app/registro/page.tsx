@@ -1,84 +1,61 @@
 'use client'
 
-import { useState } from 'react'
-import { registrarLiderEIglesia } from '@/actions/auth'
 import Link from 'next/link'
 
 export default function RegistroPage() {
-  const [mensajeError, setMensajeError] = useState<string | null>(null)
-
-  async function handleSubmit(formData: FormData) {
-    setMensajeError(null)
-    const res = await registrarLiderEIglesia(formData)
-    if (res?.error) {
-      setMensajeError(res.error)
-    }
-  }
-
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
-      <h2 className="text-xl font-bold text-[#0F2C4C] mb-2">Registro de Líder e Iglesia</h2>
-      <p className="text-xs text-slate-500 mb-4">Crea la cuenta para tu congregación o grupo de música.</p>
-
-      {mensajeError && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-xs border border-red-200">
-          {mensajeError}
-        </div>
-      )}
-
-      <form action={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre de la Iglesia / Congregación</label>
-          <input 
-            type="text" 
-            name="nombreIglesia" 
-            required 
-            placeholder="Ej: IPUC Central Medellín"
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]" 
-          />
+    <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 text-center">
+      <div className="max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
+        <div className="mx-auto w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-7 h-7 text-slate-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Correo Electrónico</label>
-          <input 
-            type="email" 
-            name="email" 
-            required 
-            placeholder="correo@ejemplo.com"
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]" 
-          />
-        </div>
+        <h2 className="font-display text-2xl font-bold text-[#0F2C4C]">
+          Registro cerrado
+        </h2>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Contraseña</label>
-          <input 
-            type="password" 
-            name="password" 
-            minLength={6}
-            required 
-            placeholder="Mínimo 6 caracteres"
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]" 
-          />
-        </div>
+        <p className="text-sm text-slate-600 leading-relaxed">
+          Alabakey se encuentra actualmente en <strong>etapa de uso privado</strong>
+          {' '}y no está aceptando nuevos registros públicos.
+        </p>
 
-        <button 
-          type="submit"
-          className="w-full bg-[#1B5FA8] text-white font-bold py-2.5 rounded-xl hover:bg-[#0F2C4C] transition-colors text-sm"
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Si considerás que esta herramienta podría ser útil para tu ministerio
+          en el futuro, podés escribirnos y te avisaremos cuando abramos nuevos cupos.
+        </p>
+
+        <a
+          href="mailto:alexanderalzate53@gmail.com?subject=Interesado%20en%20Alabakey"
+          className="inline-block px-5 py-2.5 bg-[#D9A544] text-[#0F2C4C] font-bold text-xs rounded-xl hover:bg-[#e8b95f] transition-colors"
         >
-          Crear cuenta y comenzar prueba
-        </button>
-      </form>
-       {/* 🆕 Link de vuelta al login */}
-      <p className="mt-4 text-center text-xs text-slate-500">
-        ¿Ya tenés cuenta?{' '}
-        <Link
-          href="/admin/login"
-          className="font-semibold text-[#1B5FA8] hover:underline"
-        >
-          Iniciá sesión
-        </Link>
-      </p>
+          Contactar al desarrollador
+        </a>
+
+        <div className="pt-3 border-t border-slate-100">
+          <p className="text-xs text-slate-500">
+            ¿Ya tenés una cuenta autorizada?{' '}
+            <Link
+              href="/admin/login"
+              className="font-semibold text-[#1B5FA8] hover:underline"
+            >
+              Iniciá sesión
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
-    

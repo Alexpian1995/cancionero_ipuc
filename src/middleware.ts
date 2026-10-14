@@ -2,14 +2,19 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// 🔒 SOLO estos 2 emails pueden usar la app (uso privado)
+const USUARIOS_PERMITIDOS = [
+  'alexanderalzate53@gmail.com',
+  'kellyarboleda65@gmail.com',
+]
+
+// Solo Alexander es admin
 const ADMIN_EMAILS = ['alexanderalzate53@gmail.com']
 
-// 🆕 Rutas que cualquier usuario LOGUEADO puede usar (no solo admin)
+// Rutas que cualquier usuario LOGUEADO puede usar (no solo admin)
 const RUTAS_USUARIO_LOGUEADO = [
   '/admin/crear',
   '/admin/editar',
-  // Si después querés que también puedan editar sus propias canciones:
-  // '/admin/editar',
 ]
 
 export async function middleware(request: NextRequest) {
@@ -49,7 +54,19 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/admin/nueva-contrasena')
   const isAdminRoute = pathname.startsWith('/admin')
 
-  // 🆕 ¿Es una ruta permitida para cualquier usuario logueado?
+  // 🔒 NUEVO: Lista blanca - si hay sesión pero el email NO está permitido, fuera
+  if (user && !isPublicAuthRoute && !isLoginPage) {
+    const email = (user.email || '').toLowerCase()
+    if (!USUARIOS_PERMITIDOS.includes(email)) {
+      // Cerrar sesión del usuario no autorizado
+      await supabase.auth.signOut()
+      const url = new URL('/admin/login', request.url)
+      url.search = '?error=no_autorizado'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // ¿Es una ruta permitida para cualquier usuario logueado?
   const esRutaUsuarioLogueado = RUTAS_USUARIO_LOGUEADO.some((r) =>
     pathname === r || pathname.startsWith(`${r}/`)
   )
@@ -66,7 +83,7 @@ export async function middleware(request: NextRequest) {
 
   // 3. Validación de admin (solo rutas protegidas, no aplica a recuperación)
   if (isAdminRoute && !isLoginPage && !isPublicAuthRoute && user) {
-    // 🆕 Si la ruta está permitida para usuarios logueados, solo exige sesión → dejar pasar
+    // Si la ruta está permitida para usuarios logueados, solo exige sesión → dejar pasar
     if (esRutaUsuarioLogueado) {
       return supabaseResponse
     }

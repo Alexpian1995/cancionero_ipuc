@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -17,6 +17,16 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // 🔒 Detectar error de middleware: usuario no autorizado
+  useEffect(() => {
+    const error = searchParams.get('error')
+    if (error === 'no_autorizado') {
+      setErrorMsg(
+        'Tu cuenta no está autorizada para acceder a Alabakey. Actualmente la plataforma es de uso privado. Si creés que esto es un error, contactá al administrador.'
+      )
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,7 +63,7 @@ function LoginForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@ipuc.org"
+            placeholder="tu@correo.com"
             className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 py-2 text-sm text-slate-800 focus:border-[#1B5FA8] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B5FA8]/20 transition-all"
           />
         </div>
@@ -97,13 +107,24 @@ function LoginForm() {
         ¿Olvidaste tu contraseña?
       </Link>
 
+      {/* 🔒 Aviso de uso privado + contacto */}
       <div className="pt-3 border-t border-slate-100">
-        <p className="text-center text-xs text-slate-500">
-          ¿Sos líder de alabanza y aún no tenés cuenta?{' '}
-          <Link href="/registro" className="font-semibold text-[#1B5FA8] hover:underline">
-            Registrate gratis
-          </Link>
-        </p>
+        <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center space-y-1">
+          <p className="text-xs text-slate-600">
+            <span className="font-semibold text-[#0F2C4C]">Alabakey</span> es una herramienta de
+            {' '}<strong>uso privado</strong> y actualmente no acepta registros públicos.
+          </p>
+          <p className="text-[11px] text-slate-500">
+            ¿Te interesa usarla en tu ministerio?{' '}
+            <a
+              href="mailto:alexanderalzate53@gmail.com?subject=Interesado%20en%20Alabakey"
+              className="font-semibold text-[#1B5FA8] hover:underline"
+            >
+              Escribinos
+            </a>
+            {' '}y te avisaremos cuando abramos nuevos cupos.
+          </p>
+        </div>
       </div>
     </form>
   )
@@ -122,7 +143,6 @@ export default function AdminLoginPage() {
           Volver al Inicio
         </Link>
 
-        {/* ✅ Encabezado con logo, título y subtítulo TODOS dentro del mismo div text-center */}
         <div className="text-center">
           <Image
             src="/AlabaKey.png"
